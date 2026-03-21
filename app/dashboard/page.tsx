@@ -26,7 +26,9 @@ function fmt(date: Date) {
   return date.toISOString().split('T')[0]
 }
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export default function Dashboard() {
   const router = useRouter()
@@ -34,9 +36,10 @@ export default function Dashboard() {
   const [newTask, setNewTask] = useState<{ [key: string]: string }>({})
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string>('')
-  const [activeNav, setActiveNav] = useState('My Day')
+  const [activeNav, setActiveNav] = useState('Week')
   const weekDays = getWeekDays()
   const todayStr = fmt(new Date())
+  const now = new Date()
 
   useEffect(() => {
     const init = async () => {
@@ -61,9 +64,7 @@ export default function Dashboard() {
     const title = newTask[dateStr]?.trim()
     if (!title) return
     const { data } = await supabase.from('tasks').insert({
-      title,
-      user_id: userId,
-      scheduled_for: dateStr,
+      title, user_id: userId, scheduled_for: dateStr,
     }).select().single()
     if (data) setTasks(prev => [...prev, data])
     setNewTask(prev => ({ ...prev, [dateStr]: '' }))
@@ -84,169 +85,254 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const todayFull = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const totalToday = tasks.filter(t => t.scheduled_for === todayStr).length
   const doneToday = tasks.filter(t => t.scheduled_for === todayStr && t.is_complete).length
+  const totalWeek = tasks.length
+  const doneWeek = tasks.filter(t => t.is_complete).length
 
   if (loading) return (
-    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F6F5F2', fontFamily: "'DM Sans', sans-serif" }}>
-      <p style={{ color: '#999', fontSize: 14 }}>Loading...</p>
-    </main>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F0F0F' }}>
+      <div style={{ color: '#444', fontSize: 13, fontFamily: 'monospace', letterSpacing: 2 }}>loading...</div>
+    </div>
   )
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: #F6F5F2; }
-        .app { display: flex; height: 100vh; overflow: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: 'Geist', -apple-system, sans-serif; background: #0F0F0F; color: #E8E6E0; }
 
-        /* Sidebar */
-        .sidebar { width: 240px; flex-shrink: 0; background: #fff; border-right: 1px solid #EBEBEA; display: flex; flex-direction: column; padding: 28px 16px; }
-        .logo { padding: 0 8px 28px; border-bottom: 1px solid #F0EFED; margin-bottom: 20px; }
-        .logo h1 { font-family: 'DM Serif Display', serif; font-size: 22px; color: #1A1A1A; letter-spacing: -0.5px; }
-        .logo p { font-size: 11px; color: #B0AFA9; margin-top: 2px; font-weight: 400; letter-spacing: 0.3px; }
+        .shell { display: flex; height: 100vh; }
 
-        .nav-section { margin-bottom: 24px; }
-        .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #C8C7C1; padding: 0 8px; margin-bottom: 6px; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: all 0.15s; font-size: 13.5px; color: #6B6A65; font-weight: 400; border: none; background: none; width: 100%; text-align: left; }
-        .nav-item:hover { background: #F6F5F2; color: #1A1A1A; }
-        .nav-item.active { background: #1A1A1A; color: #fff; }
-        .nav-item.active .nav-icon { opacity: 1; }
-        .nav-icon { font-size: 15px; width: 20px; text-align: center; opacity: 0.7; }
-        .nav-badge { margin-left: auto; background: #F0EFED; color: #999; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500; }
-        .nav-item.active .nav-badge { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); }
+        /* ── Sidebar ── */
+        .sidebar {
+          width: 220px; flex-shrink: 0;
+          background: #141414;
+          border-right: 1px solid #222;
+          display: flex; flex-direction: column;
+          padding: 0;
+          overflow: hidden;
+        }
+        .sidebar-top { padding: 24px 20px 20px; border-bottom: 1px solid #1E1E1E; }
+        .brand { display: flex; align-items: baseline; gap: 6px; margin-bottom: 20px; }
+        .brand-name {
+          font-family: 'Instrument Serif', serif;
+          font-size: 20px; color: #F0EDE6;
+          letter-spacing: -0.3px;
+        }
+        .brand-dot { width: 5px; height: 5px; background: #4ADE80; border-radius: 50%; margin-bottom: 2px; flex-shrink: 0; }
 
-        .sidebar-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid #F0EFED; }
-        .signout-btn { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #B0AFA9; cursor: pointer; padding: 6px 8px; border-radius: 6px; border: none; background: none; width: 100%; transition: all 0.15s; }
-        .signout-btn:hover { color: #6B6A65; background: #F6F5F2; }
+        .date-card { background: #1A1A1A; border-radius: 10px; padding: 12px 14px; border: 1px solid #222; }
+        .date-card-day { font-size: 11px; color: #555; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500; margin-bottom: 2px; }
+        .date-card-full { font-family: 'Instrument Serif', serif; font-size: 17px; color: #E8E6E0; line-height: 1.2; }
+        .date-card-stats { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #222; }
+        .stat { display: flex; flex-direction: column; }
+        .stat-num { font-size: 18px; font-weight: 500; color: #F0EDE6; line-height: 1; }
+        .stat-label { font-size: 10px; color: #555; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
 
-        /* Main */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { padding: 20px 28px 16px; background: #fff; border-bottom: 1px solid #EBEBEA; display: flex; align-items: flex-end; justify-content: space-between; flex-shrink: 0; }
-        .topbar-left h2 { font-family: 'DM Serif Display', serif; font-size: 24px; color: #1A1A1A; letter-spacing: -0.3px; }
-        .topbar-left p { font-size: 12.5px; color: #B0AFA9; margin-top: 3px; }
-        .progress-pill { display: flex; align-items: center; gap: 10px; background: #F6F5F2; border-radius: 20px; padding: 6px 14px; }
-        .progress-bar-wrap { width: 80px; height: 4px; background: #E8E7E3; border-radius: 2px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: #1A1A1A; border-radius: 2px; transition: width 0.4s ease; }
-        .progress-text { font-size: 12px; color: #999; white-space: nowrap; }
+        .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+        .nav-group { margin-bottom: 20px; }
+        .nav-group-label { font-size: 9.5px; font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; color: #3A3A3A; padding: 0 8px; margin-bottom: 4px; }
+        .nav-btn {
+          display: flex; align-items: center; gap: 9px;
+          width: 100%; padding: 7px 8px; border-radius: 7px;
+          font-size: 13px; color: #666; font-weight: 400;
+          background: none; border: none; cursor: pointer;
+          transition: all 0.12s; text-align: left;
+          font-family: 'Geist', sans-serif;
+        }
+        .nav-btn:hover { background: #1E1E1E; color: #B0AE A8; }
+        .nav-btn.active { background: #242424; color: #E8E6E0; }
+        .nav-btn .icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+        .nav-btn .count { margin-left: auto; font-size: 10px; background: #2A2A2A; color: #666; padding: 1px 6px; border-radius: 8px; }
+        .nav-btn.active .count { background: #333; color: #999; }
 
-        /* Week grid */
-        .week-wrap { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 20px 20px; }
-        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; min-width: 860px; height: 100%; }
+        .add-list-btn { color: #3A3A3A !important; }
+        .add-list-btn:hover { color: #666 !important; }
 
-        .day-col { display: flex; flex-direction: column; background: #fff; border-radius: 14px; border: 1px solid #EBEBEA; overflow: hidden; transition: box-shadow 0.2s; }
-        .day-col:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-        .day-col.today { border-color: #1A1A1A; box-shadow: 0 0 0 1px #1A1A1A; }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #1E1E1E; }
+        .user-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; transition: background 0.12s; border: none; background: none; width: 100%; text-align: left; font-family: 'Geist', sans-serif; }
+        .user-row:hover { background: #1E1E1E; }
+        .avatar { width: 26px; height: 26px; background: #2A2A2A; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #666; flex-shrink: 0; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .signout-label { font-size: 10px; color: #444; }
 
-        .day-header { padding: 14px 12px 10px; border-bottom: 1px solid #F6F5F2; flex-shrink: 0; }
-        .day-name { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #C8C7C1; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .day-col.today .day-name { color: #1A1A1A; }
-        .day-count { font-size: 10px; color: #D0CFC9; font-weight: 500; letter-spacing: 0; text-transform: none; }
-        .day-num { font-family: 'DM Serif Display', serif; font-size: 26px; color: #D0CFC9; line-height: 1; }
-        .day-col.today .day-num { color: #1A1A1A; }
-        .today-dot { width: 5px; height: 5px; background: #1A1A1A; border-radius: 50%; margin-top: 6px; }
+        /* ── Main ── */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0F0F0F; }
 
-        .task-list { flex: 1; overflow-y: auto; padding: 8px 8px 4px; display: flex; flex-direction: column; gap: 2px; }
-        .task-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s; group: true; }
-        .task-item:hover { background: #F6F5F2; }
-        .task-check { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #D0CFC9; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; cursor: pointer; background: none; }
-        .task-check:hover { border-color: #1A1A1A; }
-        .task-check.done { background: #1A1A1A; border-color: #1A1A1A; }
-        .task-title { flex: 1; font-size: 12.5px; color: #3D3C38; line-height: 1.5; font-weight: 400; }
-        .task-title.done { text-decoration: line-through; color: #C8C7C1; }
-        .task-delete { opacity: 0; font-size: 16px; color: #D0CFC9; cursor: pointer; background: none; border: none; padding: 0; line-height: 1; margin-top: 0px; flex-shrink: 0; transition: all 0.15s; }
-        .task-item:hover .task-delete { opacity: 1; }
-        .task-delete:hover { color: #E07070; }
+        .topbar {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 16px 24px;
+          border-bottom: 1px solid #1A1A1A;
+          flex-shrink: 0;
+        }
+        .view-tabs { display: flex; gap: 2px; background: #1A1A1A; border-radius: 8px; padding: 3px; }
+        .view-tab {
+          font-size: 12px; padding: 5px 12px; border-radius: 6px;
+          border: none; background: none; color: #555;
+          cursor: pointer; font-family: 'Geist', sans-serif;
+          transition: all 0.12s;
+        }
+        .view-tab.active { background: #242424; color: #E8E6E0; }
+        .week-label { font-family: 'Instrument Serif', serif; font-size: 15px; color: #555; }
+        .week-progress { display: flex; align-items: center; gap: 10px; }
+        .prog-track { width: 100px; height: 3px; background: #222; border-radius: 2px; overflow: hidden; }
+        .prog-fill { height: 100%; background: #4ADE80; border-radius: 2px; transition: width 0.5s ease; }
+        .prog-label { font-size: 11px; color: #444; }
 
-        .day-input-wrap { padding: 8px 8px 10px; flex-shrink: 0; border-top: 1px solid #F6F5F2; }
-        .day-input { width: 100%; font-size: 12px; color: #6B6A65; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; }
-        .day-input::placeholder { color: #C8C7C1; }
+        /* ── Week grid ── */
+        .week-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 16px; }
+        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; min-width: 840px; height: 100%; }
 
-        /* Scrollbar */
-        .task-list::-webkit-scrollbar { width: 3px; }
-        .task-list::-webkit-scrollbar-thumb { background: #E8E7E3; border-radius: 2px; }
-        .week-wrap::-webkit-scrollbar { height: 4px; }
-        .week-wrap::-webkit-scrollbar-thumb { background: #E8E7E3; border-radius: 2px; }
+        .day-card {
+          display: flex; flex-direction: column;
+          background: #141414;
+          border: 1px solid #1E1E1E;
+          border-radius: 12px;
+          overflow: hidden;
+          transition: border-color 0.15s;
+        }
+        .day-card:hover { border-color: #2A2A2A; }
+        .day-card.today { border-color: #2D4A2D; background: #111811; }
+
+        .day-head { padding: 14px 12px 10px; flex-shrink: 0; }
+        .day-head-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+        .day-weekday { font-size: 10px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: #3A3A3A; }
+        .day-card.today .day-weekday { color: #4ADE80; }
+        .day-tally { font-size: 10px; color: #333; }
+        .day-card.today .day-tally { color: #2D6B2D; }
+        .day-date { font-family: 'Instrument Serif', serif; font-size: 28px; color: #2A2A2A; line-height: 1; }
+        .day-card.today .day-date { color: #E8E6E0; }
+        .today-bar { height: 2px; width: 20px; background: #4ADE80; border-radius: 1px; margin-top: 8px; }
+
+        .task-area { flex: 1; overflow-y: auto; padding: 6px 8px 4px; }
+        .task-row { display: flex; align-items: flex-start; gap: 8px; padding: 5px 5px; border-radius: 7px; transition: background 0.1s; }
+        .task-row:hover { background: #1A1A1A; }
+        .task-row:hover .del-btn { opacity: 1; }
+        .check-btn {
+          width: 15px; height: 15px; border-radius: 50%;
+          border: 1px solid #2E2E2E; flex-shrink: 0; margin-top: 2px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; background: none; transition: all 0.15s;
+        }
+        .check-btn:hover { border-color: #4ADE80; }
+        .check-btn.checked { background: #4ADE80; border-color: #4ADE80; }
+        .task-text { flex: 1; font-size: 12.5px; color: #777; line-height: 1.5; font-weight: 400; }
+        .task-text.checked { text-decoration: line-through; color: #333; }
+        .del-btn { opacity: 0; background: none; border: none; color: #333; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; margin-top: 1px; transition: all 0.1s; flex-shrink: 0; }
+        .del-btn:hover { color: #E07070; }
+
+        .input-area { padding: 8px 8px 10px; flex-shrink: 0; border-top: 1px solid #1A1A1A; }
+        .task-input {
+          width: 100%; background: none; border: none; outline: none;
+          font-size: 12px; color: #555; font-family: 'Geist', sans-serif;
+        }
+        .task-input::placeholder { color: #2E2E2E; }
+        .day-card.today .task-input::placeholder { color: #2A4A2A; }
+
+        .task-area::-webkit-scrollbar { width: 2px; }
+        .task-area::-webkit-scrollbar-thumb { background: #222; border-radius: 1px; }
+        .week-scroll::-webkit-scrollbar { height: 3px; }
+        .week-scroll::-webkit-scrollbar-thumb { background: #1E1E1E; border-radius: 2px; }
       `}</style>
 
-      <div className="app">
+      <div className="shell">
         {/* Sidebar */}
         <aside className="sidebar">
-          <div className="logo">
-            <h1>friendey.</h1>
-            <p>your life, organized</p>
+          <div className="sidebar-top">
+            <div className="brand">
+              <span className="brand-name">friendey</span>
+              <div className="brand-dot" />
+            </div>
+            <div className="date-card">
+              <div className="date-card-day">{DAYS[now.getDay()]}</div>
+              <div className="date-card-full">{MONTHS[now.getMonth()]} {now.getDate()}, {now.getFullYear()}</div>
+              <div className="date-card-stats">
+                <div className="stat">
+                  <span className="stat-num">{totalToday}</span>
+                  <span className="stat-label">today</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-num">{doneToday}</span>
+                  <span className="stat-label">done</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-num">{totalWeek - doneWeek}</span>
+                  <span className="stat-label">left</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="nav-section">
-            <div className="nav-label">Today</div>
-            {[
-              { icon: '☀️', label: 'My Day', count: totalToday },
-              { icon: '⭐', label: 'Important' },
-              { icon: '📅', label: 'Planned' },
-            ].map(({ icon, label, count }) => (
-              <button
-                key={label}
-                className={`nav-item ${activeNav === label ? 'active' : ''}`}
-                onClick={() => setActiveNav(label)}
-              >
-                <span className="nav-icon">{icon}</span>
-                {label}
-                {count !== undefined && count > 0 && (
-                  <span className="nav-badge">{count}</span>
-                )}
+          <nav className="sidebar-nav">
+            <div className="nav-group">
+              <div className="nav-group-label">Views</div>
+              {[
+                { icon: '▦', label: 'Week' },
+                { icon: '☀', label: 'Today' },
+                { icon: '★', label: 'Important' },
+                { icon: '◷', label: 'Upcoming' },
+              ].map(({ icon, label }) => (
+                <button key={label} className={`nav-btn ${activeNav === label ? 'active' : ''}`} onClick={() => setActiveNav(label)}>
+                  <span className="icon">{icon}</span>
+                  {label}
+                  {label === 'Today' && totalToday > 0 && <span className="count">{totalToday}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="nav-group">
+              <div className="nav-group-label">Lists</div>
+              {[
+                { icon: '◈', label: 'Work' },
+                { icon: '◉', label: 'Personal' },
+                { icon: '◇', label: 'Health' },
+              ].map(({ icon, label }) => (
+                <button key={label} className={`nav-btn ${activeNav === label ? 'active' : ''}`} onClick={() => setActiveNav(label)}>
+                  <span className="icon">{icon}</span>
+                  {label}
+                </button>
+              ))}
+              <button className="nav-btn add-list-btn">
+                <span className="icon">+</span>
+                New list
               </button>
-            ))}
-          </div>
+            </div>
+          </nav>
 
-          <div className="nav-section">
-            <div className="nav-label">Lists</div>
-            {[
-              { icon: '💼', label: 'Work' },
-              { icon: '🏠', label: 'Personal' },
-              { icon: '❤️', label: 'Health' },
-            ].map(({ icon, label }) => (
-              <button
-                key={label}
-                className={`nav-item ${activeNav === label ? 'active' : ''}`}
-                onClick={() => setActiveNav(label)}
-              >
-                <span className="nav-icon">{icon}</span>
-                {label}
-              </button>
-            ))}
-            <button className="nav-item" style={{ color: '#B0AFA9', marginTop: 4 }}>
-              <span className="nav-icon" style={{ fontSize: 18, fontWeight: 300 }}>+</span>
-              New list
-            </button>
-          </div>
-
-          <div className="sidebar-bottom">
-            <button className="signout-btn" onClick={signOut}>
-              <span>↗</span> Sign out
+          <div className="sidebar-footer">
+            <button className="user-row" onClick={signOut}>
+              <div className="avatar">u</div>
+              <div className="user-info">
+                <div className="user-name">My account</div>
+                <div className="signout-label">Sign out →</div>
+              </div>
             </button>
           </div>
         </aside>
 
-        {/* Main content */}
+        {/* Main */}
         <main className="main">
           <div className="topbar">
-            <div className="topbar-left">
-              <h2>{todayFull}</h2>
-              <p>{totalToday} tasks · {doneToday} completed</p>
+            <div className="view-tabs">
+              {['Week', 'Day', 'Month'].map(v => (
+                <button key={v} className={`view-tab ${activeNav === v ? 'active' : ''}`} onClick={() => setActiveNav(v)}>{v}</button>
+              ))}
             </div>
-            {totalToday > 0 && (
-              <div className="progress-pill">
-                <div className="progress-bar-wrap">
-                  <div className="progress-bar-fill" style={{ width: `${(doneToday / totalToday) * 100}%` }} />
-                </div>
-                <span className="progress-text">{Math.round((doneToday / totalToday) * 100)}%</span>
+            <div className="week-label">
+              {MONTHS[weekDays[0].getMonth()]} {weekDays[0].getDate()} – {MONTHS[weekDays[6].getMonth()]} {weekDays[6].getDate()}
+            </div>
+            <div className="week-progress">
+              <div className="prog-track">
+                <div className="prog-fill" style={{ width: totalWeek > 0 ? `${(doneWeek / totalWeek) * 100}%` : '0%' }} />
               </div>
-            )}
+              <span className="prog-label">{doneWeek}/{totalWeek} this week</span>
+            </div>
           </div>
 
-          <div className="week-wrap">
+          <div className="week-scroll">
             <div className="week-grid">
               {weekDays.map((date, i) => {
                 const dateStr = fmt(date)
@@ -255,44 +341,37 @@ export default function Dashboard() {
                 const done = dayTasks.filter(t => t.is_complete).length
 
                 return (
-                  <div key={dateStr} className={`day-col${isToday ? ' today' : ''}`}>
-                    <div className="day-header">
-                      <div className="day-name">
-                        {DAYS[i]}
-                        {dayTasks.length > 0 && (
-                          <span className="day-count">{done}/{dayTasks.length}</span>
-                        )}
+                  <div key={dateStr} className={`day-card${isToday ? ' today' : ''}`}>
+                    <div className="day-head">
+                      <div className="day-head-top">
+                        <span className="day-weekday">{DAYS_SHORT[date.getDay()]}</span>
+                        {dayTasks.length > 0 && <span className="day-tally">{done}/{dayTasks.length}</span>}
                       </div>
-                      <div className="day-num">{date.getDate()}</div>
-                      {isToday && <div className="today-dot" />}
+                      <div className="day-date">{date.getDate()}</div>
+                      {isToday && <div className="today-bar" />}
                     </div>
 
-                    <div className="task-list">
+                    <div className="task-area">
                       {dayTasks.map(task => (
-                        <div key={task.id} className="task-item">
-                          <button
-                            className={`task-check${task.is_complete ? ' done' : ''}`}
-                            onClick={() => toggleTask(task)}
-                          >
+                        <div key={task.id} className="task-row">
+                          <button className={`check-btn${task.is_complete ? ' checked' : ''}`} onClick={() => toggleTask(task)}>
                             {task.is_complete && (
                               <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M2 5l2.5 2.5L8 3" stroke="#0F0F0F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             )}
                           </button>
-                          <span className={`task-title${task.is_complete ? ' done' : ''}`}>
-                            {task.title}
-                          </span>
-                          <button className="task-delete" onClick={() => deleteTask(task.id)}>×</button>
+                          <span className={`task-text${task.is_complete ? ' checked' : ''}`}>{task.title}</span>
+                          <button className="del-btn" onClick={() => deleteTask(task.id)}>×</button>
                         </div>
                       ))}
                     </div>
 
-                    <div className="day-input-wrap">
+                    <div className="input-area">
                       <input
-                        className="day-input"
+                        className="task-input"
                         type="text"
-                        placeholder="+ Add task..."
+                        placeholder="+ add task"
                         value={newTask[dateStr] ?? ''}
                         onChange={e => setNewTask(prev => ({ ...prev, [dateStr]: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && addTask(dateStr)}
