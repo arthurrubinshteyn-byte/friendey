@@ -53,9 +53,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
   const editor = useEditor({
     extensions: [StarterKit, TextStyle, Color],
     content: note.content || '<p></p>',
-    onUpdate: ({ editor }) => {
-      onUpdate(note.id, editor.getHTML())
-    },
+    onUpdate: ({ editor }) => onUpdate(note.id, editor.getHTML()),
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection
       if (from !== to) {
@@ -63,15 +61,10 @@ function NoteEditor({ note, onUpdate, onDelete }: {
         if (sel && sel.rangeCount > 0) {
           const range = sel.getRangeAt(0)
           const rect = range.getBoundingClientRect()
-          setToolbarPos({
-            top: rect.top - 44,
-            left: Math.max(8, rect.left + rect.width / 2 - 120),
-          })
+          setToolbarPos({ top: rect.top - 44, left: Math.max(8, rect.left + rect.width / 2 - 120) })
           setShowToolbar(true)
         }
-      } else {
-        setShowToolbar(false)
-      }
+      } else setShowToolbar(false)
     },
     onBlur: () => setTimeout(() => setShowToolbar(false), 200),
     editorProps: { attributes: { class: 'note-editor-inner' } },
@@ -102,7 +95,11 @@ function NoteEditor({ note, onUpdate, onDelete }: {
   )
 }
 
-function JournalEditor({ content, onChange }: { content: string, onChange: (v: string) => void }) {
+function JournalEditor({ content, onChange, editorKey }: {
+  content: string
+  onChange: (v: string) => void
+  editorKey: string
+}) {
   const editor = useEditor({
     extensions: [StarterKit, TextStyle, Color],
     content: content || '<p></p>',
@@ -123,6 +120,7 @@ export default function Dashboard() {
   const [journalContent, setJournalContent] = useState('')
   const [journalId, setJournalId] = useState<string | null>(null)
   const [journalSaved, setJournalSaved] = useState(true)
+  const [journalLoaded, setJournalLoaded] = useState(false)
   const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
   const journalTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const weekDays = getWeekDays()
@@ -146,12 +144,13 @@ export default function Dashboard() {
   }, [])
 
   const loadJournal = async () => {
+    setJournalLoaded(false)
     const { data } = await supabase
       .from('journal')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
     if (data) {
       setJournalContent(data.content)
       setJournalId(data.id)
@@ -159,6 +158,7 @@ export default function Dashboard() {
       setJournalContent('')
       setJournalId(null)
     }
+    setJournalLoaded(true)
   }
 
   const handleJournalChange = (value: string) => {
@@ -227,16 +227,8 @@ export default function Dashboard() {
         .week-label { font-size: 11.5px; color: #A8A69C; }
         .header-right { display: flex; align-items: center; gap: 16px; }
 
-        .journal-btn {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 12px; font-weight: 500; color: #4A4840;
-          background: #EEECEA; border: 1px solid #E0DDD6;
-          padding: 6px 14px; border-radius: 8px; cursor: pointer;
-          font-family: 'Inter', sans-serif; transition: all 0.15s;
-          letter-spacing: 0.1px;
-        }
+        .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; letter-spacing: 0.1px; }
         .journal-btn:hover { background: #E8E5E1; border-color: #D4D1CC; color: #1C1C1A; }
-        .journal-icon { font-size: 13px; }
 
         .signout { font-size: 11.5px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; }
         .signout:hover { color: #1C1C1A; }
@@ -287,48 +279,22 @@ export default function Dashboard() {
         .color-btn { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
         .color-btn:hover { transform: scale(1.2); border-color: #555; }
 
-        /* Journal overlay */
-        .journal-overlay {
-          position: fixed; inset: 0; background: rgba(0,0,0,0.3);
-          z-index: 100; display: flex; align-items: center; justify-content: center;
-          animation: overlayIn 0.2s ease;
-          backdrop-filter: blur(2px);
-        }
+        .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .journal-modal {
-          background: #FAFAF8; border-radius: 16px;
-          width: 680px; max-width: calc(100vw - 40px);
-          height: 70vh; max-height: 600px;
-          display: flex; flex-direction: column;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.15);
-          animation: modalIn 0.2s ease;
-          overflow: hidden;
-        }
+        .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: calc(100vw - 40px); height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
         @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
-        .journal-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 18px 24px 14px; border-bottom: 1px solid #ECEAE4; flex-shrink: 0;
-        }
+        .journal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 14px; border-bottom: 1px solid #ECEAE4; flex-shrink: 0; }
         .journal-title { font-size: 14px; font-weight: 600; color: #1C1C1A; letter-spacing: -0.2px; }
         .journal-date { font-size: 11px; color: #B8B6AC; margin-top: 1px; }
         .journal-header-right { display: flex; align-items: center; gap: 12px; }
         .journal-saved { font-size: 11px; color: #B8B6AC; }
         .journal-close { background: none; border: none; cursor: pointer; color: #B8B6AC; font-size: 20px; line-height: 1; transition: color 0.15s; padding: 0; }
         .journal-close:hover { color: #1C1C1A; }
-
         .journal-body { flex: 1; overflow-y: auto; padding: 20px 24px 24px; }
         .journal-body::-webkit-scrollbar { width: 0; }
-        .journal-editor-inner {
-          font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.8;
-          color: #3A3830; outline: none; min-height: 100%;
-        }
+        .journal-editor-inner { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.8; color: #3A3830; outline: none; min-height: 200px; }
         .journal-editor-inner p { margin: 0 0 4px; }
-        .journal-editor-inner p.is-empty:first-child::before {
-          content: 'Write anything. This is just for you...';
-          color: #D4D2C8; pointer-events: none; float: left; height: 0;
-        }
+        .journal-loading { font-size: 13px; color: #C8C6BC; padding: 20px 0; }
 
         .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 32px; flex-shrink: 0; justify-content: space-between; }
         .footer-text { font-size: 10.5px; color: #C8C6BC; }
@@ -344,12 +310,8 @@ export default function Dashboard() {
             <span className="week-label">{weekLabel}</span>
           </div>
           <div className="header-right">
-            <button
-              className="journal-btn"
-              onClick={() => { setJournalOpen(true); loadJournal() }}
-            >
-              <span className="journal-icon">📓</span>
-              Open journal
+            <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
+              📓 Open journal
             </button>
             <button className="signout" onClick={signOut}>sign out →</button>
           </div>
@@ -403,7 +365,6 @@ export default function Dashboard() {
         </footer>
       </div>
 
-      {/* Journal overlay */}
       {journalOpen && (
         <div className="journal-overlay" onClick={() => setJournalOpen(false)}>
           <div className="journal-modal" onClick={e => e.stopPropagation()}>
@@ -413,12 +374,21 @@ export default function Dashboard() {
                 <div className="journal-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
               </div>
               <div className="journal-header-right">
-                <span className="journal-saved">{journalSaved ? 'saved' : 'saving...'}</span>
+                <span className="journal-saved">{journalSaved ? 'saved ✓' : 'saving...'}</span>
                 <button className="journal-close" onClick={() => setJournalOpen(false)}>×</button>
               </div>
             </div>
             <div className="journal-body">
-              <JournalEditor content={journalContent} onChange={handleJournalChange} />
+              {!journalLoaded ? (
+                <div className="journal-loading">Loading...</div>
+              ) : (
+                <JournalEditor
+                  key={journalId || 'new'}
+                  content={journalContent}
+                  onChange={handleJournalChange}
+                  editorKey={journalId || 'new'}
+                />
+              )}
             </div>
           </div>
         </div>
