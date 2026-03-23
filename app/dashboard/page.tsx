@@ -30,6 +30,7 @@ function getWeekDays() {
 function fmt(date: Date) { return date.toISOString().split('T')[0] }
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 const COLORS = [
@@ -116,6 +117,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay())
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalContent, setJournalContent] = useState('')
   const [journalId, setJournalId] = useState<string | null>(null)
@@ -220,19 +222,31 @@ export default function Dashboard() {
         body { font-family: 'Inter', sans-serif; background: #F8F7F4; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
         .page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; flex-shrink: 0; z-index: 10; }
-        .header-left { display: flex; align-items: center; gap: 20px; }
+        /* Header */
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; flex-shrink: 0; z-index: 10; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
         .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
         .header-divider { width: 1px; height: 14px; background: #E0DDD6; }
-        .week-label { font-size: 11.5px; color: #A8A69C; }
-        .header-right { display: flex; align-items: center; gap: 16px; }
-
-        .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; letter-spacing: 0.1px; }
-        .journal-btn:hover { background: #E8E5E1; border-color: #D4D1CC; color: #1C1C1A; }
-
-        .signout { font-size: 11.5px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; }
+        .week-label { font-size: 11px; color: #A8A69C; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+        .journal-btn:hover { background: #E8E5E1; color: #1C1C1A; }
+        .signout { font-size: 11px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; white-space: nowrap; }
         .signout:hover { color: #1C1C1A; }
 
+        /* Mobile day tabs */
+        .day-tabs { display: none; overflow-x: auto; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; padding: 0 16px; gap: 4px; }
+        .day-tabs::-webkit-scrollbar { height: 0; }
+        .day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 8px; cursor: pointer; border: none; background: none; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+        .day-tab-name { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #C0BEB4; margin-bottom: 2px; }
+        .day-tab-num { font-size: 16px; font-weight: 300; color: #C8C6BC; line-height: 1; }
+        .day-tab.is-today .day-tab-name { color: #1C1C1A; }
+        .day-tab.is-today .day-tab-num { color: #1C1C1A; font-weight: 600; }
+        .day-tab.is-selected { background: #EEECEA; }
+        .day-tab.is-selected .day-tab-name { color: #4A4840; }
+        .day-tab.is-selected .day-tab-num { color: #1C1C1A; }
+
+        /* Desktop day labels */
         .day-labels { display: flex; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; }
         .day-label-cell { flex: 1; padding: 10px 18px 8px; border-right: 1px solid #E8E6E0; display: flex; align-items: baseline; gap: 10px; }
         .day-label-cell:last-child { border-right: none; }
@@ -243,15 +257,22 @@ export default function Dashboard() {
         .day-label-cell.is-today .day-num-text { color: #1C1C1A; font-weight: 600; }
         .today-tag { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #1C1C1A; background: #E8E6E0; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
 
+        /* Board */
         .board { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; }
         .board::-webkit-scrollbar { height: 0; }
-
         .day-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #E8E6E0; min-width: 120px; height: 100%; position: relative; transition: background 0.2s; }
         .day-col:last-child { border-right: none; }
         .day-col.is-today { background: #FFFEF8; }
         .day-col.is-past { background: #F2F1EE; }
         .day-col.is-future { background: #F5F4F1; }
         .day-col.is-hovered:not(.is-today) { background: #FAFAF6; }
+
+        /* Mobile single day view */
+        .mobile-day { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .mobile-day-inner { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
+        .mobile-day-inner::-webkit-scrollbar { width: 0; }
+        .mobile-add-btn { position: fixed; bottom: 24px; right: 24px; background: #1C1C1A; color: #F8F7F4; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 50; transition: all 0.15s; }
+        .mobile-add-btn:hover { background: #333; transform: scale(1.05); }
 
         .notes-area { flex: 1; overflow-y: auto; padding: 12px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
@@ -278,12 +299,13 @@ export default function Dashboard() {
         .color-btn { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
         .color-btn:hover { transform: scale(1.2); border-color: #555; }
 
-        .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); }
+        /* Journal */
+        .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-        .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: calc(100vw - 40px); height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
+        .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
         @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .journal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 14px; border-bottom: 1px solid #ECEAE4; flex-shrink: 0; }
-        .journal-title { font-size: 14px; font-weight: 600; color: #1C1C1A; letter-spacing: -0.2px; }
+        .journal-title { font-size: 14px; font-weight: 600; color: #1C1C1A; }
         .journal-date { font-size: 11px; color: #B8B6AC; margin-top: 1px; }
         .journal-header-right { display: flex; align-items: center; gap: 12px; }
         .journal-saved { font-size: 11px; color: #B8B6AC; }
@@ -295,10 +317,32 @@ export default function Dashboard() {
         .journal-editor-inner p { margin: 0 0 4px; }
         .journal-loading { font-size: 13px; color: #C8C6BC; padding: 20px 0; }
 
-        .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 32px; flex-shrink: 0; justify-content: space-between; }
+        .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 24px; flex-shrink: 0; justify-content: space-between; }
         .footer-text { font-size: 10.5px; color: #C8C6BC; }
         .footer-text strong { color: #A8A69C; font-weight: 500; }
         .footer-right { font-size: 10.5px; color: #C8C6BC; }
+
+        /* Mobile breakpoint */
+        @media (max-width: 768px) {
+          .header { padding: 0 16px; height: 50px; }
+          .week-label { display: none; }
+          .header-divider { display: none; }
+          .logo-text { font-size: 18px; }
+          .journal-btn span:last-child { display: none; }
+          .journal-btn { padding: 6px 10px; }
+
+          .day-labels { display: none; }
+          .day-tabs { display: flex; }
+
+          .board { display: none; }
+          .mobile-day { display: flex; }
+          .mobile-add-btn { display: flex; }
+
+          .footer { display: none; }
+
+          .journal-modal { height: 85vh; max-height: none; border-radius: 16px 16px 0 0; align-self: flex-end; margin: 0; width: 100%; }
+          .journal-overlay { align-items: flex-end; padding: 0; }
+        }
       `}</style>
 
       <div className="page">
@@ -310,12 +354,27 @@ export default function Dashboard() {
           </div>
           <div className="header-right">
             <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
-              📓 Open journal
+              📓 <span>Open journal</span>
             </button>
             <button className="signout" onClick={signOut}>sign out →</button>
           </div>
         </header>
 
+        {/* Mobile day tabs */}
+        <div className="day-tabs">
+          {weekDays.map((date, i) => (
+            <button
+              key={i}
+              className={`day-tab${i === todayIndex ? ' is-today' : ''}${i === selectedDay ? ' is-selected' : ''}`}
+              onClick={() => setSelectedDay(i)}
+            >
+              <span className="day-tab-name">{DAYS_SHORT[i]}</span>
+              <span className="day-tab-num">{date.getDate()}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop day labels */}
         <div className="day-labels">
           {weekDays.map((date, i) => (
             <div key={i} className={`day-label-cell${i === todayIndex ? ' is-today' : ''}`}>
@@ -326,6 +385,7 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Desktop board */}
         <div className="board">
           {weekDays.map((_, i) => {
             const isToday = i === todayIndex
@@ -355,6 +415,27 @@ export default function Dashboard() {
             )
           })}
         </div>
+
+        {/* Mobile single day view */}
+        <div className="mobile-day">
+          <div className="mobile-day-inner">
+            {notes.filter(n => n.day_index === selectedDay).length === 0 && selectedDay === todayIndex && (
+              <div className="empty-hint">What's on your mind today?</div>
+            )}
+            {notes
+              .filter(n => n.day_index === selectedDay)
+              .sort((a, b) => a.position_y - b.position_y)
+              .map(note => (
+                <div key={note.id}>
+                  <NoteEditor note={note} onUpdate={handleUpdate} onDelete={deleteNote} />
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        {/* Mobile add button */}
+        <button className="mobile-add-btn" onClick={() => addNote(selectedDay)}>+</button>
 
         <footer className="footer">
           <span className="footer-text">
