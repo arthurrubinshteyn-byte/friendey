@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextStyle from '@tiptap/extension-text-style'
@@ -51,11 +51,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 })
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      TextStyle,
-      Color,
-    ],
+    extensions: [StarterKit, TextStyle, Color],
     content: note.content || '<p></p>',
     onUpdate: ({ editor }) => {
       onUpdate(note.id, editor.getHTML())
@@ -81,16 +77,14 @@ function NoteEditor({ note, onUpdate, onDelete }: {
       setTimeout(() => setShowToolbar(false), 200)
     },
     editorProps: {
-      attributes: {
-        class: 'note-editor-inner',
-      },
+      attributes: { class: 'note-editor-inner' },
     },
   })
 
   if (!editor) return null
 
   return (
-    <div className="note-row" onMouseLeave={() => {}}>
+    <div className="note-row">
       <div className="note-bullet" />
       <div className="note-editor-wrap">
         <EditorContent editor={editor} />
@@ -123,11 +117,8 @@ function NoteEditor({ note, onUpdate, onDelete }: {
               title={c.label}
               style={{ background: c.value || '#1C1C1A' }}
               onClick={() => {
-                if (c.value === '') {
-                  editor.chain().focus().unsetColor().run()
-                } else {
-                  editor.chain().focus().setColor(c.value).run()
-                }
+                if (c.value === '') editor.chain().focus().unsetColor().run()
+                else editor.chain().focus().setColor(c.value).run()
               }}
             />
           ))}
@@ -143,6 +134,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
+  const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
   const weekDays = getWeekDays()
   const todayIndex = new Date().getDay()
 
@@ -163,9 +155,12 @@ export default function Dashboard() {
     init()
   }, [])
 
-  const handleUpdate = useCallback(async (id: string, content: string) => {
+  const handleUpdate = useCallback((id: string, content: string) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, content } : n))
-    await supabase.from('notes').update({ content }).eq('id', id)
+    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id])
+    debounceTimers.current[id] = setTimeout(async () => {
+      await supabase.from('notes').update({ content }).eq('id', id)
+    }, 500)
   }, [])
 
   const addNote = async (dayIndex: number) => {
@@ -185,7 +180,9 @@ export default function Dashboard() {
 
   const signOut = async () => { await supabase.auth.signOut(); router.push('/') }
 
-  const activeDaysThisWeek = new Set(notes.filter(n => n.content.replace(/<[^>]*>/g, '').trim()).map(n => n.day_index)).size
+  const activeDaysThisWeek = new Set(
+    notes.filter(n => n.content.replace(/<[^>]*>/g, '').trim()).map(n => n.day_index)
+  ).size
   const weekLabel = `${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getDate()} — ${weekDays[6].getDate()}, ${weekDays[6].getFullYear()}`
   const R = 14, C = 2 * Math.PI * R
   const filled = C * (activeDaysThisWeek / 7)
@@ -212,7 +209,6 @@ export default function Dashboard() {
           flex-shrink: 0; z-index: 10;
         }
         .header-left { display: flex; align-items: center; gap: 20px; }
-        .logo { display: flex; align-items: baseline; gap: 1px; }
         .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
         .header-divider { width: 1px; height: 14px; background: #E0DDD6; }
         .week-label { font-size: 11.5px; color: #A8A69C; }
@@ -251,7 +247,6 @@ export default function Dashboard() {
 
         .note-row { display: flex; align-items: flex-start; padding: 1px 12px 1px 16px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
-
         .note-bullet { width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 10px; margin-right: 8px; transition: background 0.15s; }
         .note-row:focus-within .note-bullet { background: #1C1C1A; }
 
@@ -259,25 +254,15 @@ export default function Dashboard() {
         .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; min-height: 26px; padding: 2px 0; }
         .note-editor-inner p { margin: 0; }
         .note-editor-inner:focus { color: #1C1C1A; }
-        .note-editor-inner p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #D4D2C8; pointer-events: none; float: left; height: 0; }
 
         .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 3px; }
         .note-del:hover { color: #D07070; }
 
         .add-col-btn { display: block; width: 100%; text-align: left; padding: 6px 16px; font-size: 12px; color: #D4D2C8; background: none; border: none; cursor: text; font-family: 'Inter', sans-serif; transition: color 0.15s; }
         .add-col-btn:hover { color: #A8A69C; }
-
         .empty-hint { padding: 12px 16px; font-size: 12px; color: #D0CEC4; line-height: 1.6; pointer-events: none; font-style: italic; }
 
-        /* Floating toolbar */
-        .toolbar {
-          position: fixed; z-index: 1000;
-          display: flex; align-items: center; gap: 2px;
-          background: #1C1C1A; border-radius: 8px;
-          padding: 5px 6px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-          animation: fadeIn 0.1s ease;
-        }
+        .toolbar { position: fixed; z-index: 1000; display: flex; align-items: center; gap: 2px; background: #1C1C1A; border-radius: 8px; padding: 5px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: fadeIn 0.1s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
         .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; }
         .tb-btn:hover, .tb-btn.active { background: #333; }
@@ -294,9 +279,7 @@ export default function Dashboard() {
       <div className="page">
         <header className="header">
           <div className="header-left">
-            <div className="logo">
-              <span className="logo-text">friendey.</span>
-            </div>
+            <span className="logo-text">friendey.</span>
             <div className="header-divider" />
             <span className="week-label">{weekLabel}</span>
           </div>
