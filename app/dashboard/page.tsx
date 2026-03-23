@@ -252,7 +252,6 @@ export default function Dashboard() {
         .day-col.is-past { background: #F2F1EE; }
         .day-col.is-future { background: #F5F4F1; }
         .day-col.is-hovered:not(.is-today) { background: #FAFAF6; }
-        .day-col.is-today::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(transparent, transparent 27px, #F0EFE6 27px, #F0EFE6 28px); pointer-events: none; opacity: 0.5; }
 
         .notes-area { flex: 1; overflow-y: auto; padding: 12px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
