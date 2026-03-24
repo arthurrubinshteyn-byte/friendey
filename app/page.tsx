@@ -253,7 +253,7 @@ export default function Landing() {
           <span style={{ color: '#CCCAC4' }}>Think clearly.</span><br /><em>Live deliberately.</em>
         </h1>
         <p className={`hero-sub${visible ? ' visible' : ''}`}>
-          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write. More features coming soon.
+          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
         </p>
         <div className={`hero-actions${visible ? ' visible' : ''}`}>
           <button className="btn-primary" onClick={() => router.push('/login')}>Start for free</button>
@@ -266,7 +266,7 @@ export default function Landing() {
         <div className="preview-frame">
           <div className="preview-bar">
             <div className="preview-bar-left">
-              <span className="preview-logo">friendey.</span>
+              <span className="preview-logo">friendey</span>
               <div className="preview-divider" />
               <span className="preview-week">March 16 — 22, 2026</span>
             </div>
@@ -371,7 +371,7 @@ export default function Landing() {
       {/* Footer */}
       <footer>
         <div className="footer-logo">friendey.</div>
-        <div className="footer-right">© 2026 Friendey. Built for thinkers.</div>
+        <div className="footer-right">© 2026 Friendey Built for thinkers.</div>
       </footer>
     </>
   )
