@@ -239,7 +239,7 @@ export default function Landing() {
         <div className="nav-logo">friendey.</div>
         <div className="nav-right">
           <button className="nav-signin" onClick={() => router.push('/login')}>Sign in</button>
-          <button className="nav-cta" onClick={() => router.push('/login')}>Get started free</button>
+          <button className="nav-cta" onClick={() => router.push('/login')}>Start for free</button>
         </div>
       </nav>
 
