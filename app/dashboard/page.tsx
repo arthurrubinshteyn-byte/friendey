@@ -1,4 +1,4 @@
-'use client' 
+'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -6,6 +6,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import BulletList from '@tiptap/extension-bullet-list'
 import ListItem from '@tiptap/extension-list-item'
+import Underline from '@tiptap/extension-underline'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -58,6 +59,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
       StarterKit.configure({ bulletList: false, listItem: false }),
       TextStyle,
       Color,
+      Underline,
       BulletList.configure({ HTMLAttributes: { class: 'note-bullet-list' } }),
       ListItem.configure({ HTMLAttributes: { class: 'note-list-item' } }),
     ],
@@ -92,7 +94,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
           <button className={`tb-btn${editor.isActive('bold') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
           <button className={`tb-btn${editor.isActive('italic') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
           <button className={`tb-btn${editor.isActive('strike') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
-          <button className={`tb-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline?.().run()} style={{ textDecoration: 'underline' }}>U</button>
+          <button className={`tb-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline().run()} style={{ textDecoration: 'underline' }}>U</button>
           <div className="tb-divider" />
           {COLORS.map(c => (
             <button
@@ -317,7 +319,6 @@ export default function Dashboard() {
         .note-row { display: flex; align-items: flex-start; padding: 0 8px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
         .note-editor-wrap { flex: 1; min-width: 0; }
-
         .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; }
         .note-editor-inner:focus { color: #1C1C1A; }
         .note-bullet-list { list-style: none; padding: 0; margin: 0; }
@@ -328,21 +329,16 @@ export default function Dashboard() {
 
         .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 4px; }
         .note-del:hover { color: #D07070; }
-
         .empty-hint { padding: 12px 16px; font-size: 12px; color: #D0CEC4; line-height: 1.6; pointer-events: none; font-style: italic; }
 
-        /* Toolbar */
         .toolbar { position: fixed; z-index: 1000; display: flex; align-items: center; gap: 2px; background: #1C1C1A; border-radius: 8px; padding: 5px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: fadeIn 0.1s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
         .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; line-height: 1.4; }
         .tb-btn:hover, .tb-btn.active { background: #333; }
         .tb-divider { width: 1px; height: 16px; background: #444; margin: 0 3px; }
-
-        /* Color buttons with white ring */
         .color-btn { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
         .color-btn:hover { transform: scale(1.25); box-shadow: 0 0 0 2px #fff; }
 
-        /* Journal */
         .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
         .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
