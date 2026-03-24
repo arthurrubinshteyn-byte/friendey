@@ -266,7 +266,6 @@ export default function Dashboard() {
         html, body { height: 100%; }
         body { font-family: 'Inter', sans-serif; background: #F8F7F4; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
         .page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
         .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; flex-shrink: 0; z-index: 10; }
         .header-left { display: flex; align-items: center; gap: 16px; }
         .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
@@ -282,7 +281,6 @@ export default function Dashboard() {
         .journal-btn:hover { background: #E8E5E1; color: #1C1C1A; }
         .signout { font-size: 11px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; }
         .signout:hover { color: #1C1C1A; }
-
         .day-tabs { display: none; overflow-x: auto; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; padding: 0 16px; gap: 4px; }
         .day-tabs::-webkit-scrollbar { height: 0; }
         .day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 8px; cursor: pointer; border: none; background: none; font-family: 'Inter', sans-serif; transition: all 0.15s; }
@@ -293,7 +291,6 @@ export default function Dashboard() {
         .day-tab.is-selected { background: #EEECEA; }
         .day-tab.is-selected .day-tab-name { color: #4A4840; }
         .day-tab.is-selected .day-tab-num { color: #1C1C1A; }
-
         .day-labels { display: flex; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; }
         .day-label-cell { flex: 1; padding: 10px 18px 8px; border-right: 1px solid #E8E6E0; display: flex; align-items: baseline; gap: 10px; }
         .day-label-cell:last-child { border-right: none; }
@@ -303,7 +300,6 @@ export default function Dashboard() {
         .day-num-text { font-size: 18px; font-weight: 300; color: #C8C6BC; line-height: 1; }
         .day-label-cell.is-today .day-num-text { color: #1C1C1A; font-weight: 600; }
         .today-tag { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #1C1C1A; background: #E8E6E0; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
-
         .board { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; }
         .board::-webkit-scrollbar { height: 0; }
         .day-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #E8E6E0; min-width: 120px; height: 100%; position: relative; transition: background 0.2s; }
@@ -312,14 +308,11 @@ export default function Dashboard() {
         .day-col.is-past { background: #F2F1EE; }
         .day-col.is-future { background: #F5F4F1; }
         .day-col.is-hovered:not(.is-today) { background: #FAFAF6; }
-
         .mobile-day { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .mobile-day-inner { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
         .mobile-day-inner::-webkit-scrollbar { width: 0; }
-
         .notes-area { flex: 1; overflow-y: auto; padding: 8px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
-
         .note-row { display: flex; align-items: flex-start; padding: 0 8px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
         .note-editor-wrap { flex: 1; min-width: 0; }
@@ -330,11 +323,8 @@ export default function Dashboard() {
         .note-list-item::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
         .note-editor-inner:focus-within .note-list-item::before { background: #A8A69C; }
         .note-list-item p { margin: 0; flex: 1; }
-
         .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 4px; }
         .note-del:hover { color: #D07070; }
-        .empty-hint { padding: 12px 16px; font-size: 12px; color: #D0CEC4; line-height: 1.6; pointer-events: none; font-style: italic; }
-
         .toolbar { position: fixed; z-index: 1000; display: flex; align-items: center; gap: 2px; background: #1C1C1A; border-radius: 8px; padding: 5px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: fadeIn 0.1s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
         .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; line-height: 1.4; }
@@ -342,7 +332,6 @@ export default function Dashboard() {
         .tb-divider { width: 1px; height: 16px; background: #444; margin: 0 3px; }
         .color-btn { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
         .color-btn:hover { transform: scale(1.25); box-shadow: 0 0 0 2px #fff; }
-
         .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
         .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
@@ -359,12 +348,10 @@ export default function Dashboard() {
         .journal-editor-inner { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.8; color: #3A3830; outline: none; min-height: 200px; }
         .journal-editor-inner p { margin: 0 0 4px; }
         .journal-loading { font-size: 13px; color: #C8C6BC; padding: 20px 0; }
-
         .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 24px; flex-shrink: 0; justify-content: space-between; }
         .footer-text { font-size: 10.5px; color: #C8C6BC; }
         .footer-text strong { color: #A8A69C; font-weight: 500; }
         .footer-right { font-size: 10.5px; color: #C8C6BC; }
-
         @media (max-width: 768px) {
           .header { padding: 0 16px; height: 50px; }
           .week-label { display: none; }
@@ -388,7 +375,7 @@ export default function Dashboard() {
       <div className="page">
         <header className="header">
           <div className="header-left">
-            <span className="logo-text">friendey</span>
+            <span className="logo-text">friendey.</span>
             <div className="header-divider" />
             <div className="week-nav">
               <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
@@ -443,8 +430,6 @@ export default function Dashboard() {
                 onMouseLeave={() => setHoveredDay(null)}
               >
                 <div className="notes-area" onClick={() => addNote(i)}>
-                  {dayNotes.length === 0 && isToday && (
-                  )}
                   {dayNotes.map(note => (
                     <div key={note.id} onClick={e => e.stopPropagation()}>
                       <NoteEditor
@@ -463,9 +448,6 @@ export default function Dashboard() {
 
         <div className="mobile-day">
           <div className="mobile-day-inner">
-            {notes.filter(n => n.day_index === selectedDay).length === 0 && selectedDay === todayIndex && isCurrentWeek && (
-              <div className="empty-hint">What's on your mind today?</div>
-            )}
             {notes
               .filter(n => n.day_index === selectedDay)
               .sort((a, b) => a.position_y - b.position_y)
