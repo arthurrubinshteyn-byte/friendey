@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Friendey',
-  description: 'Your life, organized',
+  title: 'Friendey — Your life, organized',
+  description: 'The simple weekly planner for people who are done juggling five apps. One clean space to plan your week, capture your thoughts, and live deliberately.',
 }
 
 export default function RootLayout({
