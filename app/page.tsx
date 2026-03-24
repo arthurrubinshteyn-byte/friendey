@@ -78,7 +78,7 @@ export default function Landing() {
 
         .hero-headline {
           font-family: 'DM Serif Display', serif;
-          font-size: clamp(52px, 8vw, 96px);
+          font-size: clamp(36px, 8vw, 72px);
           line-height: 1.0; letter-spacing: -2px;
           color: #F0EDE6; margin-bottom: 24px;
           opacity: 0; transform: translateY(20px);
