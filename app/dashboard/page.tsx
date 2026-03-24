@@ -46,10 +46,11 @@ const COLORS = [
   { label: 'Purple', value: '#7048E8' },
 ]
 
-function NoteEditor({ note, onUpdate, onDelete }: {
+function NoteEditor({ note, onUpdate, onDelete, autoFocus }: {
   note: Note
   onUpdate: (id: string, content: string) => void
   onDelete: (id: string) => void
+  autoFocus?: boolean
 }) {
   const [showToolbar, setShowToolbar] = useState(false)
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 })
@@ -64,6 +65,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
       ListItem.configure({ HTMLAttributes: { class: 'note-list-item' } }),
     ],
     content: note.content || '<ul><li><p></p></li></ul>',
+    autofocus: autoFocus ? 'end' : false,
     onUpdate: ({ editor }) => onUpdate(note.id, editor.getHTML()),
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection
@@ -134,6 +136,7 @@ export default function Dashboard() {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay())
   const [weekOffset, setWeekOffset] = useState(0)
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null)
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalContent, setJournalContent] = useState('')
   const [journalId, setJournalId] = useState<string | null>(null)
@@ -233,7 +236,10 @@ export default function Dashboard() {
       position_y: notes.filter(n => n.day_index === dayIndex).length,
       week_start: weekStart,
     }).select().single()
-    if (data) setNotes(prev => [...prev, data])
+    if (data) {
+      setNotes(prev => [...prev, data])
+      setLastAddedId(data.id)
+    }
   }
 
   const deleteNote = async (id: string) => {
@@ -442,7 +448,12 @@ export default function Dashboard() {
                   )}
                   {dayNotes.map(note => (
                     <div key={note.id} onClick={e => e.stopPropagation()}>
-                      <NoteEditor note={note} onUpdate={handleUpdate} onDelete={deleteNote} />
+                      <NoteEditor
+                        note={note}
+                        onUpdate={handleUpdate}
+                        onDelete={deleteNote}
+                        autoFocus={note.id === lastAddedId}
+                      />
                     </div>
                   ))}
                 </div>
@@ -461,7 +472,12 @@ export default function Dashboard() {
               .sort((a, b) => a.position_y - b.position_y)
               .map(note => (
                 <div key={note.id}>
-                  <NoteEditor note={note} onUpdate={handleUpdate} onDelete={deleteNote} />
+                  <NoteEditor
+                    note={note}
+                    onUpdate={handleUpdate}
+                    onDelete={deleteNote}
+                    autoFocus={note.id === lastAddedId}
+                  />
                 </div>
               ))
             }
