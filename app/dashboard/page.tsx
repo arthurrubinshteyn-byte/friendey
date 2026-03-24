@@ -444,7 +444,6 @@ export default function Dashboard() {
               >
                 <div className="notes-area" onClick={() => addNote(i)}>
                   {dayNotes.length === 0 && isToday && (
-                    <div className="empty-hint">What's on your mind today?</div>
                   )}
                   {dayNotes.map(note => (
                     <div key={note.id} onClick={e => e.stopPropagation()}>
