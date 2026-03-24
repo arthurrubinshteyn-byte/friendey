@@ -386,7 +386,7 @@ export default function Dashboard() {
       <div className="page">
         <header className="header">
           <div className="header-left">
-            <span className="logo-text">friendey.</span>
+            <span className="logo-text">friendey</span>
             <div className="header-divider" />
             <div className="week-nav">
               <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
