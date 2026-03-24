@@ -4,6 +4,8 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
+import BulletList from '@tiptap/extension-bullet-list'
+import ListItem from '@tiptap/extension-list-item'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -52,8 +54,18 @@ function NoteEditor({ note, onUpdate, onDelete }: {
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 })
 
   const editor = useEditor({
-    extensions: [StarterKit, TextStyle, Color],
-    content: note.content || '<p></p>',
+    extensions: [
+      StarterKit.configure({ bulletList: false, listItem: false }),
+      TextStyle,
+      Color,
+      BulletList.configure({
+        HTMLAttributes: { class: 'note-bullet-list' },
+      }),
+      ListItem.configure({
+        HTMLAttributes: { class: 'note-list-item' },
+      }),
+    ],
+    content: note.content || '<ul><li><p></p></li></ul>',
     onUpdate: ({ editor }) => onUpdate(note.id, editor.getHTML()),
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection
@@ -126,7 +138,6 @@ export default function Dashboard() {
   const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
   const journalTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const todayIndex = new Date().getDay()
-
   const weekDays = getWeekDays(weekOffset)
 
   const loadNotes = async (offset: number) => {
@@ -151,9 +162,7 @@ export default function Dashboard() {
       const channel = supabase
         .channel('notes-realtime')
         .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'notes',
+          event: '*', schema: 'public', table: 'notes',
         }, (payload) => {
           if (payload.eventType === 'INSERT') {
             setNotes(prev => {
@@ -162,9 +171,7 @@ export default function Dashboard() {
             })
           }
           if (payload.eventType === 'UPDATE') {
-            setNotes(prev => prev.map(n =>
-              n.id === payload.new.id ? payload.new as Note : n
-            ))
+            setNotes(prev => prev.map(n => n.id === payload.new.id ? payload.new as Note : n))
           }
           if (payload.eventType === 'DELETE') {
             setNotes(prev => prev.filter(n => n.id !== (payload.old as Note).id))
@@ -184,18 +191,11 @@ export default function Dashboard() {
   const loadJournal = async () => {
     setJournalLoaded(false)
     const { data } = await supabase
-      .from('journal')
-      .select('*')
+      .from('journal').select('*')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (data) {
-      setJournalContent(data.content)
-      setJournalId(data.id)
-    } else {
-      setJournalContent('')
-      setJournalId(null)
-    }
+      .limit(1).maybeSingle()
+    if (data) { setJournalContent(data.content); setJournalId(data.id) }
+    else { setJournalContent(''); setJournalId(null) }
     setJournalLoaded(true)
   }
 
@@ -207,9 +207,7 @@ export default function Dashboard() {
       if (journalId) {
         await supabase.from('journal').update({ content: value, updated_at: new Date().toISOString() }).eq('id', journalId)
       } else {
-        const { data } = await supabase.from('journal').insert({
-          user_id: userId, content: value
-        }).select().single()
+        const { data } = await supabase.from('journal').insert({ user_id: userId, content: value }).select().single()
         if (data) setJournalId(data.id)
       }
       setJournalSaved(true)
@@ -227,7 +225,7 @@ export default function Dashboard() {
   const addNote = async (dayIndex: number) => {
     const weekStart = fmt(weekDays[0])
     const { data } = await supabase.from('notes').insert({
-      user_id: userId, content: '', day_index: dayIndex,
+      user_id: userId, content: '<ul><li><p></p></li></ul>', day_index: dayIndex,
       position_y: notes.filter(n => n.day_index === dayIndex).length,
       week_start: weekStart,
     }).select().single()
@@ -263,14 +261,12 @@ export default function Dashboard() {
         .header-left { display: flex; align-items: center; gap: 16px; }
         .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
         .header-divider { width: 1px; height: 14px; background: #E0DDD6; }
-
         .week-nav { display: flex; align-items: center; gap: 8px; }
         .week-nav-btn { background: none; border: 1px solid #E8E6E0; color: #A8A69C; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
         .week-nav-btn:hover { background: #EEECEA; color: #1C1C1A; border-color: #D4D1CC; }
         .week-label { font-size: 11px; color: #A8A69C; white-space: nowrap; }
         .week-today-btn { font-size: 11px; color: #B8A068; background: #FDF0D8; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
         .week-today-btn:hover { background: #F5E4C0; }
-
         .header-right { display: flex; align-items: center; gap: 12px; }
         .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
         .journal-btn:hover { background: #E8E5E1; color: #1C1C1A; }
@@ -313,22 +309,26 @@ export default function Dashboard() {
         .mobile-add-btn { position: fixed; bottom: 24px; right: 24px; background: #1C1C1A; color: #F8F7F4; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 50; transition: all 0.15s; }
         .mobile-add-btn:hover { background: #333; transform: scale(1.05); }
 
-        .notes-area { flex: 1; overflow-y: auto; padding: 12px 0 60px; cursor: text; position: relative; z-index: 1; }
+        .notes-area { flex: 1; overflow-y: auto; padding: 8px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
 
-        .note-row { display: flex; align-items: flex-start; padding: 1px 12px 1px 12px; position: relative; }
+        .note-row { display: flex; align-items: flex-start; padding: 0 8px 0 8px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
         .note-editor-wrap { flex: 1; min-width: 0; }
 
-        .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; min-height: 26px; padding: 2px 0; }
-        .note-editor-inner p { margin: 0; display: flex; align-items: flex-start; gap: 8px; }
-        .note-editor-inner p::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
-        .note-editor-inner:focus-within p::before { background: #A8A69C; }
+        .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; }
         .note-editor-inner:focus { color: #1C1C1A; }
 
-        .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 3px; }
+        .note-bullet-list { list-style: none; padding: 0; margin: 0; }
+        .note-list-item { display: flex; align-items: flex-start; gap: 8px; padding: 1px 0; }
+        .note-list-item::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
+        .note-editor-inner:focus-within .note-list-item::before { background: #A8A69C; }
+        .note-list-item p { margin: 0; flex: 1; }
+
+        .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 4px; }
         .note-del:hover { color: #D07070; }
-        .add-col-btn { display: block; width: 100%; text-align: left; padding: 6px 16px; font-size: 12px; color: #D4D2C8; background: none; border: none; cursor: text; font-family: 'Inter', sans-serif; transition: color 0.15s; }
+
+        .add-col-btn { display: block; width: 100%; text-align: left; padding: 4px 16px; font-size: 12px; color: #D4D2C8; background: none; border: none; cursor: text; font-family: 'Inter', sans-serif; transition: color 0.15s; }
         .add-col-btn:hover { color: #A8A69C; }
         .empty-hint { padding: 12px 16px; font-size: 12px; color: #D0CEC4; line-height: 1.6; pointer-events: none; font-style: italic; }
 
