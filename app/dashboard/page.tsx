@@ -58,12 +58,8 @@ function NoteEditor({ note, onUpdate, onDelete }: {
       StarterKit.configure({ bulletList: false, listItem: false }),
       TextStyle,
       Color,
-      BulletList.configure({
-        HTMLAttributes: { class: 'note-bullet-list' },
-      }),
-      ListItem.configure({
-        HTMLAttributes: { class: 'note-list-item' },
-      }),
+      BulletList.configure({ HTMLAttributes: { class: 'note-bullet-list' } }),
+      ListItem.configure({ HTMLAttributes: { class: 'note-list-item' } }),
     ],
     content: note.content || '<ul><li><p></p></li></ul>',
     onUpdate: ({ editor }) => onUpdate(note.id, editor.getHTML()),
@@ -74,7 +70,7 @@ function NoteEditor({ note, onUpdate, onDelete }: {
         if (sel && sel.rangeCount > 0) {
           const range = sel.getRangeAt(0)
           const rect = range.getBoundingClientRect()
-          setToolbarPos({ top: rect.top - 44, left: Math.max(8, rect.left + rect.width / 2 - 120) })
+          setToolbarPos({ top: rect.top - 44, left: Math.max(8, rect.left + rect.width / 2 - 140) })
           setShowToolbar(true)
         }
       } else setShowToolbar(false)
@@ -95,9 +91,15 @@ function NoteEditor({ note, onUpdate, onDelete }: {
         <div className="toolbar" style={{ top: toolbarPos.top, left: toolbarPos.left }} onMouseDown={e => e.preventDefault()}>
           <button className={`tb-btn${editor.isActive('bold') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
           <button className={`tb-btn${editor.isActive('italic') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
+          <button className={`tb-btn${editor.isActive('strike') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
+          <button className={`tb-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline?.().run()} style={{ textDecoration: 'underline' }}>U</button>
           <div className="tb-divider" />
           {COLORS.map(c => (
-            <button key={c.value} className="color-btn" title={c.label} style={{ background: c.value || '#1C1C1A' }}
+            <button
+              key={c.value}
+              className="color-btn"
+              title={c.label}
+              style={{ background: c.value || '#1C1C1A' }}
               onClick={() => c.value === '' ? editor.chain().focus().unsetColor().run() : editor.chain().focus().setColor(c.value).run()}
             />
           ))}
@@ -312,13 +314,12 @@ export default function Dashboard() {
         .notes-area { flex: 1; overflow-y: auto; padding: 8px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
 
-        .note-row { display: flex; align-items: flex-start; padding: 0 8px 0 8px; position: relative; }
+        .note-row { display: flex; align-items: flex-start; padding: 0 8px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
         .note-editor-wrap { flex: 1; min-width: 0; }
 
         .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; }
         .note-editor-inner:focus { color: #1C1C1A; }
-
         .note-bullet-list { list-style: none; padding: 0; margin: 0; }
         .note-list-item { display: flex; align-items: flex-start; gap: 8px; padding: 1px 0; }
         .note-list-item::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
@@ -328,18 +329,20 @@ export default function Dashboard() {
         .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 4px; }
         .note-del:hover { color: #D07070; }
 
-        .add-col-btn { display: block; width: 100%; text-align: left; padding: 4px 16px; font-size: 12px; color: #D4D2C8; background: none; border: none; cursor: text; font-family: 'Inter', sans-serif; transition: color 0.15s; }
-        .add-col-btn:hover { color: #A8A69C; }
         .empty-hint { padding: 12px 16px; font-size: 12px; color: #D0CEC4; line-height: 1.6; pointer-events: none; font-style: italic; }
 
+        /* Toolbar */
         .toolbar { position: fixed; z-index: 1000; display: flex; align-items: center; gap: 2px; background: #1C1C1A; border-radius: 8px; padding: 5px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: fadeIn 0.1s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-        .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; }
+        .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; line-height: 1.4; }
         .tb-btn:hover, .tb-btn.active { background: #333; }
-        .tb-divider { width: 1px; height: 16px; background: #333; margin: 0 3px; }
-        .color-btn { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
-        .color-btn:hover { transform: scale(1.2); border-color: #555; }
+        .tb-divider { width: 1px; height: 16px; background: #444; margin: 0 3px; }
 
+        /* Color buttons with white ring */
+        .color-btn { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
+        .color-btn:hover { transform: scale(1.25); box-shadow: 0 0 0 2px #fff; }
+
+        /* Journal */
         .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
         .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
@@ -386,7 +389,7 @@ export default function Dashboard() {
       <div className="page">
         <header className="header">
           <div className="header-left">
-            <span className="logo-text">friendey</span>
+            <span className="logo-text">friendey.</span>
             <div className="header-divider" />
             <div className="week-nav">
               <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
@@ -449,9 +452,6 @@ export default function Dashboard() {
                       <NoteEditor note={note} onUpdate={handleUpdate} onDelete={deleteNote} />
                     </div>
                   ))}
-                  {dayNotes.length > 0 && (
-                    <button className="add-col-btn" onClick={e => { e.stopPropagation(); addNote(i) }}>+ add</button>
-                  )}
                 </div>
               </div>
             )
