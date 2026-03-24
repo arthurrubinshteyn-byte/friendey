@@ -310,8 +310,6 @@ export default function Dashboard() {
         .mobile-day { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .mobile-day-inner { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
         .mobile-day-inner::-webkit-scrollbar { width: 0; }
-        .mobile-add-btn { position: fixed; bottom: 24px; right: 24px; background: #1C1C1A; color: #F8F7F4; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 50; transition: all 0.15s; }
-        .mobile-add-btn:hover { background: #333; transform: scale(1.05); }
 
         .notes-area { flex: 1; overflow-y: auto; padding: 8px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
@@ -375,7 +373,6 @@ export default function Dashboard() {
           .day-tabs { display: flex; }
           .board { display: none; }
           .mobile-day { display: flex; }
-          .mobile-add-btn { display: flex; }
           .footer { display: none; }
           .journal-modal { height: 85vh; max-height: none; border-radius: 16px 16px 0 0; align-self: flex-end; width: 100%; }
           .journal-overlay { align-items: flex-end; padding: 0; }
@@ -470,8 +467,6 @@ export default function Dashboard() {
             }
           </div>
         </div>
-
-        <button className="mobile-add-btn" onClick={() => addNote(selectedDay)}>+</button>
 
         <footer className="footer">
           <span className="footer-text">
