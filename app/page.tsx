@@ -253,7 +253,7 @@ export default function Landing() {
           <span style={{ color: '#CCCAC4' }}>Think clearly.</span><br /><em>Live deliberately.</em>
         </h1>
         <p className={`hero-sub${visible ? ' visible' : ''}`}>
-          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
+          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write. More features coming soon.
         </p>
         <div className={`hero-actions${visible ? ' visible' : ''}`}>
           <button className="btn-primary" onClick={() => router.push('/login')}>Start for free</button>
