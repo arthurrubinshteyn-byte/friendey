@@ -75,7 +75,6 @@ function NoteEditor({ note, onUpdate, onDelete }: {
 
   return (
     <div className="note-row">
-      <div className="note-bullet" />
       <div className="note-editor-wrap">
         <EditorContent editor={editor} />
       </div>
@@ -316,14 +315,17 @@ export default function Dashboard() {
 
         .notes-area { flex: 1; overflow-y: auto; padding: 12px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
-        .note-row { display: flex; align-items: flex-start; padding: 1px 12px 1px 16px; position: relative; }
+
+        .note-row { display: flex; align-items: flex-start; padding: 1px 12px 1px 12px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
-        .note-bullet { width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 10px; margin-right: 8px; transition: background 0.15s; }
-        .note-row:focus-within .note-bullet { background: #1C1C1A; }
         .note-editor-wrap { flex: 1; min-width: 0; }
+
         .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; min-height: 26px; padding: 2px 0; }
-        .note-editor-inner p { margin: 0; }
+        .note-editor-inner p { margin: 0; display: flex; align-items: flex-start; gap: 8px; }
+        .note-editor-inner p::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
+        .note-editor-inner:focus-within p::before { background: #A8A69C; }
         .note-editor-inner:focus { color: #1C1C1A; }
+
         .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 3px; }
         .note-del:hover { color: #D07070; }
         .add-col-btn { display: block; width: 100%; text-align: left; padding: 6px 16px; font-size: 12px; color: #D4D2C8; background: none; border: none; cursor: text; font-family: 'Inter', sans-serif; transition: color 0.15s; }
