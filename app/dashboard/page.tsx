@@ -131,7 +131,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/'); return }
+      if (!user) { router.push('/login'); return }
       setUserId(user.id)
       const weekStart = fmt(weekDays[0])
       const { data } = await supabase
