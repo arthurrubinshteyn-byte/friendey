@@ -15,11 +15,11 @@ type Note = {
   week_start: string
 }
 
-function getWeekDays() {
+function getWeekDays(offset = 0) {
   const today = new Date()
   const day = today.getDay()
   const sunday = new Date(today)
-  sunday.setDate(today.getDate() - day)
+  sunday.setDate(today.getDate() - day + offset * 7)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(sunday)
     d.setDate(sunday.getDate() + i)
@@ -118,6 +118,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState('')
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay())
+  const [weekOffset, setWeekOffset] = useState(0)
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalContent, setJournalContent] = useState('')
   const [journalId, setJournalId] = useState<string | null>(null)
@@ -125,25 +126,61 @@ export default function Dashboard() {
   const [journalLoaded, setJournalLoaded] = useState(false)
   const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
   const journalTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const weekDays = getWeekDays()
   const todayIndex = new Date().getDay()
+
+  const weekDays = getWeekDays(weekOffset)
+
+  const loadNotes = async (offset: number) => {
+    const days = getWeekDays(offset)
+    const weekStart = fmt(days[0])
+    const { data } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('week_start', weekStart)
+      .order('created_at', { ascending: true })
+    setNotes(data ?? [])
+  }
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
-      const weekStart = fmt(weekDays[0])
-      const { data } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('week_start', weekStart)
-        .order('created_at', { ascending: true })
-      setNotes(data ?? [])
+      await loadNotes(0)
       setLoading(false)
+
+      const channel = supabase
+        .channel('notes-realtime')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'notes',
+        }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setNotes(prev => {
+              if (prev.find(n => n.id === (payload.new as Note).id)) return prev
+              return [...prev, payload.new as Note]
+            })
+          }
+          if (payload.eventType === 'UPDATE') {
+            setNotes(prev => prev.map(n =>
+              n.id === payload.new.id ? payload.new as Note : n
+            ))
+          }
+          if (payload.eventType === 'DELETE') {
+            setNotes(prev => prev.filter(n => n.id !== (payload.old as Note).id))
+          }
+        })
+        .subscribe()
+
+      return () => { supabase.removeChannel(channel) }
     }
     init()
   }, [])
+
+  useEffect(() => {
+    if (!loading) loadNotes(weekOffset)
+  }, [weekOffset])
 
   const loadJournal = async () => {
     setJournalLoaded(false)
@@ -205,6 +242,7 @@ export default function Dashboard() {
 
   const signOut = async () => { await supabase.auth.signOut(); router.push('/') }
 
+  const isCurrentWeek = weekOffset === 0
   const weekLabel = `${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getDate()} — ${weekDays[6].getDate()}, ${weekDays[6].getFullYear()}`
 
   if (loading) return (
@@ -222,19 +260,24 @@ export default function Dashboard() {
         body { font-family: 'Inter', sans-serif; background: #F8F7F4; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
         .page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        /* Header */
         .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; flex-shrink: 0; z-index: 10; }
         .header-left { display: flex; align-items: center; gap: 16px; }
         .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
         .header-divider { width: 1px; height: 14px; background: #E0DDD6; }
-        .week-label { font-size: 11px; color: #A8A69C; }
+
+        .week-nav { display: flex; align-items: center; gap: 8px; }
+        .week-nav-btn { background: none; border: 1px solid #E8E6E0; color: #A8A69C; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+        .week-nav-btn:hover { background: #EEECEA; color: #1C1C1A; border-color: #D4D1CC; }
+        .week-label { font-size: 11px; color: #A8A69C; white-space: nowrap; }
+        .week-today-btn { font-size: 11px; color: #B8A068; background: #FDF0D8; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+        .week-today-btn:hover { background: #F5E4C0; }
+
         .header-right { display: flex; align-items: center; gap: 12px; }
         .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
         .journal-btn:hover { background: #E8E5E1; color: #1C1C1A; }
-        .signout { font-size: 11px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; white-space: nowrap; }
+        .signout { font-size: 11px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; }
         .signout:hover { color: #1C1C1A; }
 
-        /* Mobile day tabs */
         .day-tabs { display: none; overflow-x: auto; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; padding: 0 16px; gap: 4px; }
         .day-tabs::-webkit-scrollbar { height: 0; }
         .day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 8px; cursor: pointer; border: none; background: none; font-family: 'Inter', sans-serif; transition: all 0.15s; }
@@ -246,7 +289,6 @@ export default function Dashboard() {
         .day-tab.is-selected .day-tab-name { color: #4A4840; }
         .day-tab.is-selected .day-tab-num { color: #1C1C1A; }
 
-        /* Desktop day labels */
         .day-labels { display: flex; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; }
         .day-label-cell { flex: 1; padding: 10px 18px 8px; border-right: 1px solid #E8E6E0; display: flex; align-items: baseline; gap: 10px; }
         .day-label-cell:last-child { border-right: none; }
@@ -257,7 +299,6 @@ export default function Dashboard() {
         .day-label-cell.is-today .day-num-text { color: #1C1C1A; font-weight: 600; }
         .today-tag { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #1C1C1A; background: #E8E6E0; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
 
-        /* Board */
         .board { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; }
         .board::-webkit-scrollbar { height: 0; }
         .day-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #E8E6E0; min-width: 120px; height: 100%; position: relative; transition: background 0.2s; }
@@ -267,7 +308,6 @@ export default function Dashboard() {
         .day-col.is-future { background: #F5F4F1; }
         .day-col.is-hovered:not(.is-today) { background: #FAFAF6; }
 
-        /* Mobile single day view */
         .mobile-day { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .mobile-day-inner { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
         .mobile-day-inner::-webkit-scrollbar { width: 0; }
@@ -276,7 +316,6 @@ export default function Dashboard() {
 
         .notes-area { flex: 1; overflow-y: auto; padding: 12px 0 60px; cursor: text; position: relative; z-index: 1; }
         .notes-area::-webkit-scrollbar { width: 0; }
-
         .note-row { display: flex; align-items: flex-start; padding: 1px 12px 1px 16px; position: relative; }
         .note-row:hover .note-del { opacity: 1; }
         .note-bullet { width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 10px; margin-right: 8px; transition: background 0.15s; }
@@ -299,7 +338,6 @@ export default function Dashboard() {
         .color-btn { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
         .color-btn:hover { transform: scale(1.2); border-color: #555; }
 
-        /* Journal */
         .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
         @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
         .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
@@ -322,7 +360,6 @@ export default function Dashboard() {
         .footer-text strong { color: #A8A69C; font-weight: 500; }
         .footer-right { font-size: 10.5px; color: #C8C6BC; }
 
-        /* Mobile breakpoint */
         @media (max-width: 768px) {
           .header { padding: 0 16px; height: 50px; }
           .week-label { display: none; }
@@ -330,17 +367,16 @@ export default function Dashboard() {
           .logo-text { font-size: 18px; }
           .journal-btn span:last-child { display: none; }
           .journal-btn { padding: 6px 10px; }
-
+          .week-nav { gap: 4px; }
+          .week-nav-btn { padding: 4px 8px; font-size: 11px; }
+          .week-today-btn { padding: 4px 8px; font-size: 11px; }
           .day-labels { display: none; }
           .day-tabs { display: flex; }
-
           .board { display: none; }
           .mobile-day { display: flex; }
           .mobile-add-btn { display: flex; }
-
           .footer { display: none; }
-
-          .journal-modal { height: 85vh; max-height: none; border-radius: 16px 16px 0 0; align-self: flex-end; margin: 0; width: 100%; }
+          .journal-modal { height: 85vh; max-height: none; border-radius: 16px 16px 0 0; align-self: flex-end; width: 100%; }
           .journal-overlay { align-items: flex-end; padding: 0; }
         }
       `}</style>
@@ -350,7 +386,14 @@ export default function Dashboard() {
           <div className="header-left">
             <span className="logo-text">friendey.</span>
             <div className="header-divider" />
-            <span className="week-label">{weekLabel}</span>
+            <div className="week-nav">
+              <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
+              <span className="week-label">{weekLabel}</span>
+              <button className="week-nav-btn" onClick={() => setWeekOffset(w => w + 1)}>→</button>
+              {!isCurrentWeek && (
+                <button className="week-today-btn" onClick={() => setWeekOffset(0)}>Today</button>
+              )}
+            </div>
           </div>
           <div className="header-right">
             <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
@@ -360,12 +403,11 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Mobile day tabs */}
         <div className="day-tabs">
           {weekDays.map((date, i) => (
             <button
               key={i}
-              className={`day-tab${i === todayIndex ? ' is-today' : ''}${i === selectedDay ? ' is-selected' : ''}`}
+              className={`day-tab${i === todayIndex && isCurrentWeek ? ' is-today' : ''}${i === selectedDay ? ' is-selected' : ''}`}
               onClick={() => setSelectedDay(i)}
             >
               <span className="day-tab-name">{DAYS_SHORT[i]}</span>
@@ -374,27 +416,25 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Desktop day labels */}
         <div className="day-labels">
           {weekDays.map((date, i) => (
-            <div key={i} className={`day-label-cell${i === todayIndex ? ' is-today' : ''}`}>
+            <div key={i} className={`day-label-cell${i === todayIndex && isCurrentWeek ? ' is-today' : ''}`}>
               <span className="day-name-text">{DAYS[i].slice(0, 3)}</span>
               <span className="day-num-text">{date.getDate()}</span>
-              {i === todayIndex && <span className="today-tag">Today</span>}
+              {i === todayIndex && isCurrentWeek && <span className="today-tag">Today</span>}
             </div>
           ))}
         </div>
 
-        {/* Desktop board */}
         <div className="board">
           {weekDays.map((_, i) => {
-            const isToday = i === todayIndex
-            const isPast = i < todayIndex
+            const isToday = i === todayIndex && isCurrentWeek
+            const isPast = i < todayIndex && isCurrentWeek
             const dayNotes = notes.filter(n => n.day_index === i).sort((a, b) => a.position_y - b.position_y)
             return (
               <div
                 key={i}
-                className={`day-col${isToday ? ' is-today' : ''}${isPast && !isToday ? ' is-past' : ''}${!isToday && !isPast ? ' is-future' : ''}${hoveredDay === i ? ' is-hovered' : ''}`}
+                className={`day-col${isToday ? ' is-today' : ''}${isPast ? ' is-past' : ''}${!isToday && !isPast ? ' is-future' : ''}${hoveredDay === i ? ' is-hovered' : ''}`}
                 onMouseEnter={() => setHoveredDay(i)}
                 onMouseLeave={() => setHoveredDay(null)}
               >
@@ -416,10 +456,9 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Mobile single day view */}
         <div className="mobile-day">
           <div className="mobile-day-inner">
-            {notes.filter(n => n.day_index === selectedDay).length === 0 && selectedDay === todayIndex && (
+            {notes.filter(n => n.day_index === selectedDay).length === 0 && selectedDay === todayIndex && isCurrentWeek && (
               <div className="empty-hint">What's on your mind today?</div>
             )}
             {notes
@@ -434,7 +473,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Mobile add button */}
         <button className="mobile-add-btn" onClick={() => addNote(selectedDay)}>+</button>
 
         <footer className="footer">
