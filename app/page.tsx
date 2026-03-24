@@ -370,7 +370,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer>
-        <div className="footer-logo">friendey.</div>
+        <div className="footer-logo">friendey</div>
         <div className="footer-right">© 2026 Friendey Built for thinkers.</div>
       </footer>
     </>
