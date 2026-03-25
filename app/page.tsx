@@ -19,14 +19,16 @@ export default function Landing() {
         body { font-family: 'DM Sans', sans-serif; background: #0C0C0B; color: #E8E6E0; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); }
         .glow { position: fixed; top: -20%; left: 50%; transform: translateX(-50%); width: 800px; height: 600px; pointer-events: none; z-index: 0; background: radial-gradient(ellipse at center, rgba(255,255,240,0.04) 0%, transparent 70%); }
-        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(20px); background: rgba(12,12,11,0.8); }
+        .announce-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: #1A1A18; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 9px 24px; text-align: center; font-size: 12px; color: #888; letter-spacing: 0.3px; }
+        .announce-bar span { color: #C8A96E; }
+        nav { position: fixed; top: 36px; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(20px); background: rgba(12,12,11,0.8); }
         .nav-logo { font-size: 18px; font-weight: 700; color: #F0EDE6; letter-spacing: -0.5px; }
         .nav-right { display: flex; align-items: center; gap: 12px; }
         .nav-signin { font-size: 13px; color: #888; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s; padding: 8px 0; }
         .nav-signin:hover { color: #E8E6E0; }
         .nav-cta { font-size: 13px; font-weight: 500; color: #0C0C0B; background: #E8E6E0; border: none; padding: 9px 20px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
         .nav-cta:hover { background: #fff; transform: translateY(-1px); }
-        .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; }
+        .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 160px 24px 80px; text-align: center; }
         .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #666; border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 100px; margin-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
         .hero-eyebrow.visible { opacity: 1; transform: translateY(0); }
         .eyebrow-dot { width: 5px; height: 5px; background: #4ADE80; border-radius: 50%; animation: pulse 2s infinite; }
@@ -87,8 +89,8 @@ export default function Landing() {
         .footer-logo { font-size: 14px; font-weight: 700; color: #333; }
         .footer-right { font-size: 12px; color: #333; }
         @media (max-width: 768px) {
-          nav { padding: 16px 20px; }
-          .hero { padding: 100px 20px 60px; }
+          nav { padding: 16px 20px; top: 34px; }
+          .hero { padding: 140px 20px 60px; }
           .features-grid { grid-template-columns: 1fr; }
           footer { padding: 20px; flex-direction: column; gap: 8px; text-align: center; }
         }
@@ -97,8 +99,13 @@ export default function Landing() {
       <div className="grain" />
       <div className="glow" />
 
+      {/* Announcement bar */}
+      <div className="announce-bar">
+        📱 Mobile app coming soon &nbsp;·&nbsp; <span>join the waitlist →</span>
+      </div>
+
       <nav>
-        <div className="nav-logo">friendey</div>
+        <div className="nav-logo">friendey.</div>
         <div className="nav-right">
           <button className="nav-signin" onClick={() => router.push('/login')}>Sign in</button>
           <button className="nav-cta" onClick={() => router.push('/login')}>Get started free</button>
@@ -126,7 +133,7 @@ export default function Landing() {
         <div className="preview-frame">
           <div className="preview-bar">
             <div className="preview-bar-left">
-              <span className="preview-logo">friendey</span>
+              <span className="preview-logo">friendey.</span>
               <div className="preview-divider" />
               <span className="preview-week">March 16 — 22, 2026</span>
             </div>
@@ -226,7 +233,7 @@ export default function Landing() {
       </section>
 
       <footer>
-        <div className="footer-logo">friendey</div>
+        <div className="footer-logo">friendey.</div>
         <div className="footer-right">© 2026 Friendey. Built for thinkers.</div>
       </footer>
     </>
