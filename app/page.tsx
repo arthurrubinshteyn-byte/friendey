@@ -1,521 +1,234 @@
 'use client'
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import TextStyle from '@tiptap/extension-text-style'
-import Color from '@tiptap/extension-color'
-import BulletList from '@tiptap/extension-bullet-list'
-import ListItem from '@tiptap/extension-list-item'
-import Underline from '@tiptap/extension-underline'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
-type Note = {
-  id: string
-  content: string
-  day_index: number
-  position_y: number
-  week_start: string
-}
-
-function getWeekDays(offset = 0) {
-  const today = new Date()
-  const day = today.getDay()
-  const sunday = new Date(today)
-  sunday.setDate(today.getDate() - day + offset * 7)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(sunday)
-    d.setDate(sunday.getDate() + i)
-    return d
-  })
-}
-
-function fmt(date: Date) { return date.toISOString().split('T')[0] }
-
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
-const COLORS = [
-  { label: 'Default', value: '' },
-  { label: 'Red', value: '#E03131' },
-  { label: 'Orange', value: '#E8590C' },
-  { label: 'Yellow', value: '#F08C00' },
-  { label: 'Green', value: '#2F9E44' },
-  { label: 'Blue', value: '#1971C2' },
-  { label: 'Purple', value: '#7048E8' },
-]
-
-function NoteEditor({ note, onUpdate, onDelete, autoFocus }: {
-  note: Note
-  onUpdate: (id: string, content: string) => void
-  onDelete: (id: string) => void
-  autoFocus?: boolean
-}) {
-  const [showToolbar, setShowToolbar] = useState(false)
-  const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 })
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ bulletList: false, listItem: false }),
-      TextStyle,
-      Color,
-      Underline,
-      BulletList.configure({ HTMLAttributes: { class: 'note-bullet-list' } }),
-      ListItem.configure({ HTMLAttributes: { class: 'note-list-item' } }),
-    ],
-    content: note.content || '<ul><li><p></p></li></ul>',
-    autofocus: autoFocus ? 'end' : false,
-    onUpdate: ({ editor }) => onUpdate(note.id, editor.getHTML()),
-    onSelectionUpdate: ({ editor }) => {
-      const { from, to } = editor.state.selection
-      if (from !== to) {
-        const sel = window.getSelection()
-        if (sel && sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0)
-          const rect = range.getBoundingClientRect()
-          setToolbarPos({ top: rect.top - 44, left: Math.max(8, rect.left + rect.width / 2 - 140) })
-          setShowToolbar(true)
-        }
-      } else setShowToolbar(false)
-    },
-    onBlur: () => setTimeout(() => setShowToolbar(false), 200),
-    editorProps: { attributes: { class: 'note-editor-inner' } },
-  })
-
-  if (!editor) return null
-
-  return (
-    <div className="note-row">
-      <div className="note-editor-wrap">
-        <EditorContent editor={editor} />
-      </div>
-      <button className="note-del" onClick={() => onDelete(note.id)}>×</button>
-      {showToolbar && (
-        <div className="toolbar" style={{ top: toolbarPos.top, left: toolbarPos.left }} onMouseDown={e => e.preventDefault()}>
-          <button className={`tb-btn${editor.isActive('bold') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
-          <button className={`tb-btn${editor.isActive('italic') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
-          <button className={`tb-btn${editor.isActive('strike') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
-          <button className={`tb-btn${editor.isActive('underline') ? ' active' : ''}`} onClick={() => editor.chain().focus().toggleUnderline().run()} style={{ textDecoration: 'underline' }}>U</button>
-          <div className="tb-divider" />
-          {COLORS.map(c => (
-            <button
-              key={c.value}
-              className="color-btn"
-              title={c.label}
-              style={{ background: c.value || '#1C1C1A' }}
-              onClick={() => c.value === '' ? editor.chain().focus().unsetColor().run() : editor.chain().focus().setColor(c.value).run()}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function JournalEditor({ content, onChange, editorKey }: {
-  content: string
-  onChange: (v: string) => void
-  editorKey: string
-}) {
-  const editor = useEditor({
-    extensions: [StarterKit, TextStyle, Color],
-    content: content || '<p></p>',
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
-    editorProps: { attributes: { class: 'journal-editor-inner' } },
-  })
-  if (!editor) return null
-  return <EditorContent editor={editor} />
-}
-
-export default function Dashboard() {
+export default function Landing() {
   const router = useRouter()
-  const [notes, setNotes] = useState<Note[]>([])
-  const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState('')
-  const [hoveredDay, setHoveredDay] = useState<number | null>(null)
-  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay())
-  const [weekOffset, setWeekOffset] = useState(0)
-  const [lastAddedId, setLastAddedId] = useState<string | null>(null)
-  const [journalOpen, setJournalOpen] = useState(false)
-  const [journalContent, setJournalContent] = useState('')
-  const [journalId, setJournalId] = useState<string | null>(null)
-  const [journalSaved, setJournalSaved] = useState(true)
-  const [journalLoaded, setJournalLoaded] = useState(false)
-  const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
-  const journalTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const weekOffsetRef = useRef(0)
-  const todayIndex = new Date().getDay()
-  const weekDays = getWeekDays(weekOffset)
+  const [visible, setVisible] = useState(false)
 
-  const loadNotes = useCallback(async (offset: number) => {
-    const days = getWeekDays(offset)
-    const weekStart = fmt(days[0])
-    const { data } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('week_start', weekStart)
-      .order('created_at', { ascending: true })
-    setNotes(data ?? [])
+  useEffect(() => {
+    setTimeout(() => setVisible(true), 100)
   }, [])
-
-  useEffect(() => {
-    weekOffsetRef.current = weekOffset
-  }, [weekOffset])
-
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      setUserId(user.id)
-      await loadNotes(0)
-      setLoading(false)
-
-      const channel = supabase
-        .channel('notes-realtime')
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'notes',
-        }, (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setNotes(prev => {
-              if (prev.find(n => n.id === (payload.new as Note).id)) return prev
-              return [...prev, payload.new as Note]
-            })
-          }
-          if (payload.eventType === 'UPDATE') {
-            setNotes(prev => prev.map(n => n.id === payload.new.id ? payload.new as Note : n))
-          }
-          if (payload.eventType === 'DELETE') {
-            setNotes(prev => prev.filter(n => n.id !== (payload.old as Note).id))
-          }
-        })
-        .subscribe()
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          loadNotes(weekOffsetRef.current)
-        }
-      }
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-
-      return () => {
-        supabase.removeChannel(channel)
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-      }
-    }
-    init()
-  }, [loadNotes])
-
-  useEffect(() => {
-    if (!loading) loadNotes(weekOffset)
-  }, [weekOffset, loadNotes])
-
-  const loadJournal = async () => {
-    setJournalLoaded(false)
-    const { data } = await supabase
-      .from('journal').select('*')
-      .order('created_at', { ascending: false })
-      .limit(1).maybeSingle()
-    if (data) { setJournalContent(data.content); setJournalId(data.id) }
-    else { setJournalContent(''); setJournalId(null) }
-    setJournalLoaded(true)
-  }
-
-  const handleJournalChange = (value: string) => {
-    setJournalContent(value)
-    setJournalSaved(false)
-    if (journalTimer.current) clearTimeout(journalTimer.current)
-    journalTimer.current = setTimeout(async () => {
-      if (journalId) {
-        await supabase.from('journal').update({ content: value, updated_at: new Date().toISOString() }).eq('id', journalId)
-      } else {
-        const { data } = await supabase.from('journal').insert({ user_id: userId, content: value }).select().single()
-        if (data) setJournalId(data.id)
-      }
-      setJournalSaved(true)
-    }, 500)
-  }
-
-  const handleUpdate = useCallback((id: string, content: string) => {
-    setNotes(prev => prev.map(n => n.id === id ? { ...n, content } : n))
-    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id])
-    debounceTimers.current[id] = setTimeout(async () => {
-      await supabase.from('notes').update({ content }).eq('id', id)
-    }, 500)
-  }, [])
-
-  const addNote = async (dayIndex: number) => {
-    const weekStart = fmt(weekDays[0])
-    const { data } = await supabase.from('notes').insert({
-      user_id: userId, content: '<ul><li><p></p></li></ul>', day_index: dayIndex,
-      position_y: notes.filter(n => n.day_index === dayIndex).length,
-      week_start: weekStart,
-    }).select().single()
-    if (data) {
-      setNotes(prev => [...prev, data])
-      setLastAddedId(data.id)
-    }
-  }
-
-  const deleteNote = async (id: string) => {
-    await supabase.from('notes').delete().eq('id', id)
-    setNotes(prev => prev.filter(n => n.id !== id))
-  }
-
-  const signOut = async () => { await supabase.auth.signOut(); router.push('/') }
-
-  const isCurrentWeek = weekOffset === 0
-  const weekLabel = `${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getDate()} — ${weekDays[6].getDate()}, ${weekDays[6].getFullYear()}`
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F7F4' }}>
-      <p style={{ color: '#C8C7BE', fontSize: 13, fontFamily: 'sans-serif' }}>...</p>
-    </div>
-  )
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
-        body { font-family: 'Inter', sans-serif; background: #F8F7F4; color: #1C1C1A; -webkit-font-smoothing: antialiased; }
-        .page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; flex-shrink: 0; z-index: 10; }
-        .header-left { display: flex; align-items: center; gap: 16px; }
-        .logo-text { font-size: 20px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; }
-        .header-divider { width: 1px; height: 14px; background: #E0DDD6; }
-        .week-nav { display: flex; align-items: center; gap: 8px; }
-        .week-nav-btn { background: none; border: 1px solid #E8E6E0; color: #A8A69C; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-        .week-nav-btn:hover { background: #EEECEA; color: #1C1C1A; border-color: #D4D1CC; }
-        .week-label { font-size: 11px; color: #A8A69C; white-space: nowrap; }
-        .week-today-btn { font-size: 11px; color: #B8A068; background: #FDF0D8; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-        .week-today-btn:hover { background: #F5E4C0; }
-        .header-right { display: flex; align-items: center; gap: 12px; }
-        .journal-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #4A4840; background: #EEECEA; border: 1px solid #E0DDD6; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-        .journal-btn:hover { background: #E8E5E1; color: #1C1C1A; }
-        .signout { font-size: 11px; color: #B8B6AC; background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: color 0.15s; }
-        .signout:hover { color: #1C1C1A; }
-        .day-tabs { display: none; overflow-x: auto; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; padding: 0 16px; gap: 4px; }
-        .day-tabs::-webkit-scrollbar { height: 0; }
-        .day-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 8px; cursor: pointer; border: none; background: none; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-        .day-tab-name { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #C0BEB4; margin-bottom: 2px; }
-        .day-tab-num { font-size: 16px; font-weight: 300; color: #C8C6BC; line-height: 1; }
-        .day-tab.is-today .day-tab-name { color: #1C1C1A; }
-        .day-tab.is-today .day-tab-num { color: #1C1C1A; font-weight: 600; }
-        .day-tab.is-selected { background: #EEECEA; }
-        .day-tab.is-selected .day-tab-name { color: #4A4840; }
-        .day-tab.is-selected .day-tab-num { color: #1C1C1A; }
-        .day-labels { display: flex; border-bottom: 1px solid #E8E6E0; background: #F8F7F4; flex-shrink: 0; }
-        .day-label-cell { flex: 1; padding: 10px 18px 8px; border-right: 1px solid #E8E6E0; display: flex; align-items: baseline; gap: 10px; }
-        .day-label-cell:last-child { border-right: none; }
-        .day-label-cell.is-today { background: #FFFEF8; }
-        .day-name-text { font-size: 9.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #C0BEB4; }
-        .day-label-cell.is-today .day-name-text { color: #1C1C1A; }
-        .day-num-text { font-size: 18px; font-weight: 300; color: #C8C6BC; line-height: 1; }
-        .day-label-cell.is-today .day-num-text { color: #1C1C1A; font-weight: 600; }
-        .today-tag { font-size: 9px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #1C1C1A; background: #E8E6E0; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
-        .board { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; }
-        .board::-webkit-scrollbar { height: 0; }
-        .day-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #E8E6E0; min-width: 120px; height: 100%; position: relative; transition: background 0.2s; }
-        .day-col:last-child { border-right: none; }
-        .day-col.is-today { background: #FFFEF8; }
-        .day-col.is-past { background: #F2F1EE; }
-        .day-col.is-future { background: #F5F4F1; }
-        .day-col.is-hovered:not(.is-today) { background: #FAFAF6; }
-        .mobile-day { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-        .mobile-day-inner { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
-        .mobile-day-inner::-webkit-scrollbar { width: 0; }
-        .notes-area { flex: 1; overflow-y: auto; padding: 8px 0 60px; cursor: text; position: relative; z-index: 1; }
-        .notes-area::-webkit-scrollbar { width: 0; }
-        .note-row { display: flex; align-items: flex-start; padding: 0 8px; position: relative; }
-        .note-row:hover .note-del { opacity: 1; }
-        .note-editor-wrap { flex: 1; min-width: 0; }
-        .note-editor-inner { font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.75; color: #4A4840; font-weight: 400; outline: none; }
-        .note-editor-inner:focus { color: #1C1C1A; }
-        .note-bullet-list { list-style: none; padding: 0; margin: 0; }
-        .note-list-item { display: flex; align-items: flex-start; gap: 8px; padding: 1px 0; }
-        .note-list-item::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #D4D2C8; flex-shrink: 0; margin-top: 9px; transition: background 0.15s; }
-        .note-editor-inner:focus-within .note-list-item::before { background: #A8A69C; }
-        .note-list-item p { margin: 0; flex: 1; }
-        .note-del { opacity: 0; background: none; border: none; cursor: pointer; color: #D4D2C8; font-size: 15px; padding: 3px 0; line-height: 1; transition: all 0.12s; flex-shrink: 0; margin-top: 4px; }
-        .note-del:hover { color: #D07070; }
-        .toolbar { position: fixed; z-index: 1000; display: flex; align-items: center; gap: 2px; background: #1C1C1A; border-radius: 8px; padding: 5px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: fadeIn 0.1s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
-        .tb-btn { background: none; border: none; cursor: pointer; color: #E8E6E0; font-size: 13px; padding: 3px 7px; border-radius: 5px; transition: background 0.1s; font-family: 'Inter', sans-serif; line-height: 1.4; }
-        .tb-btn:hover, .tb-btn.active { background: #333; }
-        .tb-divider { width: 1px; height: 16px; background: #444; margin: 0 3px; }
-        .color-btn { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
-        .color-btn:hover { transform: scale(1.25); box-shadow: 0 0 0 2px #fff; }
-        .journal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.2s ease; backdrop-filter: blur(2px); padding: 20px; }
-        @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-        .journal-modal { background: #FAFAF8; border-radius: 16px; width: 680px; max-width: 100%; height: 70vh; max-height: 600px; display: flex; flex-direction: column; box-shadow: 0 24px 60px rgba(0,0,0,0.15); animation: modalIn 0.2s ease; overflow: hidden; }
-        @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .journal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 14px; border-bottom: 1px solid #ECEAE4; flex-shrink: 0; }
-        .journal-title { font-size: 14px; font-weight: 600; color: #1C1C1A; }
-        .journal-date { font-size: 11px; color: #B8B6AC; margin-top: 1px; }
-        .journal-header-right { display: flex; align-items: center; gap: 12px; }
-        .journal-saved { font-size: 11px; color: #B8B6AC; }
-        .journal-close { background: none; border: none; cursor: pointer; color: #B8B6AC; font-size: 20px; line-height: 1; transition: color 0.15s; padding: 0; }
-        .journal-close:hover { color: #1C1C1A; }
-        .journal-body { flex: 1; overflow-y: auto; padding: 20px 24px 24px; }
-        .journal-body::-webkit-scrollbar { width: 0; }
-        .journal-editor-inner { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.8; color: #3A3830; outline: none; min-height: 200px; }
-        .journal-editor-inner p { margin: 0 0 4px; }
-        .journal-loading { font-size: 13px; color: #C8C6BC; padding: 20px 0; }
-        .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 24px; flex-shrink: 0; justify-content: space-between; }
-        .footer-text { font-size: 10.5px; color: #C8C6BC; }
-        .footer-text strong { color: #A8A69C; font-weight: 500; }
-        .footer-right { font-size: 10.5px; color: #C8C6BC; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'DM Sans', sans-serif; background: #0C0C0B; color: #E8E6E0; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0.035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); }
+        .glow { position: fixed; top: -20%; left: 50%; transform: translateX(-50%); width: 800px; height: 600px; pointer-events: none; z-index: 0; background: radial-gradient(ellipse at center, rgba(255,255,240,0.04) 0%, transparent 70%); }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(20px); background: rgba(12,12,11,0.8); }
+        .nav-logo { font-size: 18px; font-weight: 700; color: #F0EDE6; letter-spacing: -0.5px; }
+        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .nav-signin { font-size: 13px; color: #888; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s; padding: 8px 0; }
+        .nav-signin:hover { color: #E8E6E0; }
+        .nav-cta { font-size: 13px; font-weight: 500; color: #0C0C0B; background: #E8E6E0; border: none; padding: 9px 20px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .nav-cta:hover { background: #fff; transform: translateY(-1px); }
+        .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; }
+        .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #666; border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 100px; margin-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .hero-eyebrow.visible { opacity: 1; transform: translateY(0); }
+        .eyebrow-dot { width: 5px; height: 5px; background: #4ADE80; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .hero-headline { font-family: 'DM Serif Display', serif; font-size: clamp(52px, 8vw, 96px); line-height: 1.0; letter-spacing: -2px; color: #F0EDE6; margin-bottom: 24px; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s; }
+        .hero-headline.visible { opacity: 1; transform: translateY(0); }
+        .hero-headline em { font-style: italic; color: #888; }
+        .hero-sub { font-size: clamp(15px, 2vw, 18px); color: #666; max-width: 480px; line-height: 1.7; font-weight: 300; margin-bottom: 48px; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s; }
+        .hero-sub.visible { opacity: 1; transform: translateY(0); }
+        .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.45s, transform 0.8s ease 0.45s; }
+        .hero-actions.visible { opacity: 1; transform: translateY(0); }
+        .btn-primary { font-size: 14px; font-weight: 600; color: #0C0C0B; background: #F0EDE6; border: none; padding: 14px 32px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .btn-primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(240,237,230,0.15); }
+        .btn-secondary { font-size: 14px; color: #555; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s; }
+        .btn-secondary:hover { color: #E8E6E0; }
+        .preview-wrap { position: relative; z-index: 1; padding: 0 24px 120px; max-width: 1100px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 1s ease 0.6s, transform 1s ease 0.6s; }
+        .preview-wrap.visible { opacity: 1; transform: translateY(0); }
+        .preview-frame { background: #141413; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04); }
+        .preview-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); background: #111110; }
+        .preview-bar-left { display: flex; align-items: center; gap: 14px; }
+        .preview-logo { font-size: 14px; font-weight: 700; color: #E8E6E0; letter-spacing: -0.3px; }
+        .preview-divider { width: 1px; height: 12px; background: rgba(255,255,255,0.1); }
+        .preview-week { font-size: 11px; color: #444; }
+        .preview-journal-btn { font-size: 11px; color: #555; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 6px; }
+        .preview-days { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .preview-day-head { padding: 10px 12px 8px; border-right: 1px solid rgba(255,255,255,0.04); }
+        .preview-day-head:last-child { border-right: none; }
+        .preview-day-name { font-size: 8px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #333; margin-bottom: 3px; }
+        .preview-day-num { font-size: 18px; font-weight: 300; color: #2A2A28; line-height: 1; }
+        .preview-day-head.today .preview-day-name { color: #888; }
+        .preview-day-head.today .preview-day-num { color: #E8E6E0; font-weight: 600; }
+        .preview-cols { display: grid; grid-template-columns: repeat(7, 1fr); height: 220px; }
+        .preview-col { padding: 10px 12px; border-right: 1px solid rgba(255,255,255,0.04); }
+        .preview-col:last-child { border-right: none; }
+        .preview-col.today { background: rgba(255,255,255,0.015); }
+        .preview-note { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 6px; }
+        .preview-bullet { width: 3px; height: 3px; border-radius: 50%; background: #333; flex-shrink: 0; margin-top: 5px; }
+        .preview-note-text { font-size: 10px; color: #3A3A38; line-height: 1.5; }
+        .preview-note.active .preview-bullet { background: #666; }
+        .preview-note.active .preview-note-text { color: #888; }
+        .preview-note.highlight .preview-note-text { color: #B8A068; }
+        .features { position: relative; z-index: 1; padding: 80px 24px 120px; max-width: 1100px; margin: 0 auto; }
+        .features-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-bottom: 60px; text-align: center; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; }
+        .feature-card { background: #0C0C0B; padding: 36px 32px; transition: background 0.2s; }
+        .feature-card:hover { background: #111110; }
+        .feature-icon { font-size: 20px; margin-bottom: 16px; }
+        .feature-title { font-size: 15px; font-weight: 600; color: #D0CEC4; margin-bottom: 8px; }
+        .feature-desc { font-size: 13px; color: #444; line-height: 1.7; font-weight: 300; }
+        .quote-section { position: relative; z-index: 1; padding: 80px 24px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .quote-text { font-family: 'DM Serif Display', serif; font-size: clamp(24px, 4vw, 42px); color: #E8E6E0; max-width: 700px; margin: 0 auto 24px; line-height: 1.3; letter-spacing: -1px; }
+        .quote-text em { font-style: italic; color: #555; }
+        .quote-sub { font-size: 13px; color: #444; }
+        .cta-section { position: relative; z-index: 1; padding: 120px 24px; text-align: center; }
+        .cta-headline { font-family: 'DM Serif Display', serif; font-size: clamp(36px, 5vw, 64px); color: #F0EDE6; margin-bottom: 16px; letter-spacing: -1.5px; line-height: 1.1; }
+        .cta-sub { font-size: 15px; color: #555; margin-bottom: 40px; font-weight: 300; }
+        footer { position: relative; z-index: 1; padding: 24px 48px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+        .footer-logo { font-size: 14px; font-weight: 700; color: #333; }
+        .footer-right { font-size: 12px; color: #333; }
         @media (max-width: 768px) {
-          .header { padding: 0 16px; height: 50px; }
-          .week-label { display: none; }
-          .header-divider { display: none; }
-          .logo-text { font-size: 18px; }
-          .journal-btn span:last-child { display: none; }
-          .journal-btn { padding: 6px 10px; }
-          .week-nav { gap: 4px; }
-          .week-nav-btn { padding: 4px 8px; font-size: 11px; }
-          .week-today-btn { padding: 4px 8px; font-size: 11px; }
-          .day-labels { display: none; }
-          .day-tabs { display: flex; }
-          .board { display: none; }
-          .mobile-day { display: flex; }
-          .footer { display: none; }
-          .journal-modal { height: 85vh; max-height: none; border-radius: 16px 16px 0 0; align-self: flex-end; width: 100%; }
-          .journal-overlay { align-items: flex-end; padding: 0; }
+          nav { padding: 16px 20px; }
+          .hero { padding: 100px 20px 60px; }
+          .features-grid { grid-template-columns: 1fr; }
+          footer { padding: 20px; flex-direction: column; gap: 8px; text-align: center; }
         }
       `}</style>
 
-      <div className="page">
-        <header className="header">
-          <div className="header-left">
-            <span className="logo-text">friendey.</span>
-            <div className="header-divider" />
-            <div className="week-nav">
-              <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
-              <span className="week-label">{weekLabel}</span>
-              <button className="week-nav-btn" onClick={() => setWeekOffset(w => w + 1)}>→</button>
-              {!isCurrentWeek && (
-                <button className="week-today-btn" onClick={() => setWeekOffset(0)}>Today</button>
-              )}
-            </div>
-          </div>
-          <div className="header-right">
-            <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
-              📓 <span>Open journal</span>
-            </button>
-            <button className="signout" onClick={signOut}>sign out →</button>
-          </div>
-        </header>
+      <div className="grain" />
+      <div className="glow" />
 
-        <div className="day-tabs">
-          {weekDays.map((date, i) => (
-            <button
-              key={i}
-              className={`day-tab${i === todayIndex && isCurrentWeek ? ' is-today' : ''}${i === selectedDay ? ' is-selected' : ''}`}
-              onClick={() => setSelectedDay(i)}
-            >
-              <span className="day-tab-name">{DAYS_SHORT[i]}</span>
-              <span className="day-tab-num">{date.getDate()}</span>
-            </button>
-          ))}
+      <nav>
+        <div className="nav-logo">friendey.</div>
+        <div className="nav-right">
+          <button className="nav-signin" onClick={() => router.push('/login')}>Sign in</button>
+          <button className="nav-cta" onClick={() => router.push('/login')}>Get started free</button>
         </div>
+      </nav>
 
-        <div className="day-labels">
-          {weekDays.map((date, i) => (
-            <div key={i} className={`day-label-cell${i === todayIndex && isCurrentWeek ? ' is-today' : ''}`}>
-              <span className="day-name-text">{DAYS[i].slice(0, 3)}</span>
-              <span className="day-num-text">{date.getDate()}</span>
-              {i === todayIndex && isCurrentWeek && <span className="today-tag">Today</span>}
-            </div>
-          ))}
+      <section className="hero">
+        <div className={`hero-eyebrow${visible ? ' visible' : ''}`}>
+          <span className="eyebrow-dot" />
+          Your week. Your life. One place.
         </div>
+        <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
+          Think clearly.<br /><em>Live deliberately.</em>
+        </h1>
+        <p className={`hero-sub${visible ? ' visible' : ''}`}>
+          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
+        </p>
+        <div className={`hero-actions${visible ? ' visible' : ''}`}>
+          <button className="btn-primary" onClick={() => router.push('/login')}>Start for free</button>
+          <button className="btn-secondary" onClick={() => router.push('/login')}>Sign in →</button>
+        </div>
+      </section>
 
-        <div className="board">
-          {weekDays.map((_, i) => {
-            const isToday = i === todayIndex && isCurrentWeek
-            const isPast = i < todayIndex && isCurrentWeek
-            const dayNotes = notes.filter(n => n.day_index === i).sort((a, b) => a.position_y - b.position_y)
-            return (
-              <div
-                key={i}
-                className={`day-col${isToday ? ' is-today' : ''}${isPast ? ' is-past' : ''}${!isToday && !isPast ? ' is-future' : ''}${hoveredDay === i ? ' is-hovered' : ''}`}
-                onMouseEnter={() => setHoveredDay(i)}
-                onMouseLeave={() => setHoveredDay(null)}
-              >
-                <div className="notes-area" onClick={() => addNote(i)}>
-                  {dayNotes.map(note => (
-                    <div key={note.id} onClick={e => e.stopPropagation()}>
-                      <NoteEditor
-                        note={note}
-                        onUpdate={handleUpdate}
-                        onDelete={deleteNote}
-                        autoFocus={note.id === lastAddedId}
-                      />
-                    </div>
-                  ))}
-                </div>
+      <div className={`preview-wrap${visible ? ' visible' : ''}`}>
+        <div className="preview-frame">
+          <div className="preview-bar">
+            <div className="preview-bar-left">
+              <span className="preview-logo">friendey.</span>
+              <div className="preview-divider" />
+              <span className="preview-week">March 16 — 22, 2026</span>
+            </div>
+            <span className="preview-journal-btn">📓 Open journal</span>
+          </div>
+          <div className="preview-days">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+              <div key={d} className={`preview-day-head${i === 6 ? ' today' : ''}`}>
+                <div className="preview-day-name">{d}</div>
+                <div className="preview-day-num">{15 + i + 1}</div>
               </div>
-            )
-          })}
-        </div>
-
-        <div className="mobile-day">
-          <div className="mobile-day-inner">
-            {notes
-              .filter(n => n.day_index === selectedDay)
-              .sort((a, b) => a.position_y - b.position_y)
-              .map(note => (
-                <div key={note.id}>
-                  <NoteEditor
-                    note={note}
-                    onUpdate={handleUpdate}
-                    onDelete={deleteNote}
-                    autoFocus={note.id === lastAddedId}
-                  />
-                </div>
-              ))
-            }
+            ))}
+          </div>
+          <div className="preview-cols">
+            <div className="preview-col">
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Plan the week</div></div>
+              <div className="preview-note highlight"><div className="preview-bullet"/><div className="preview-note-text">Call mom</div></div>
+            </div>
+            <div className="preview-col">
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Morning run</div></div>
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Deep work 9-12</div></div>
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Review finances</div></div>
+            </div>
+            <div className="preview-col">
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Team standup</div></div>
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Gym 6pm</div></div>
+            </div>
+            <div className="preview-col">
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Focus on launch</div></div>
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Write content</div></div>
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Read 30 min</div></div>
+            </div>
+            <div className="preview-col">
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Product review</div></div>
+            </div>
+            <div className="preview-col">
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Rest day</div></div>
+              <div className="preview-note highlight"><div className="preview-bullet"/><div className="preview-note-text">Reflect on week</div></div>
+            </div>
+            <div className="preview-col today">
+              <div className="preview-note active"><div className="preview-bullet"/><div className="preview-note-text">Post TikTok</div></div>
+              <div className="preview-note"><div className="preview-bullet"/><div className="preview-note-text">Ship Friendey</div></div>
+            </div>
           </div>
         </div>
-
-        <footer className="footer">
-          <span className="footer-text">
-            <strong>Select text</strong> to format &nbsp;·&nbsp; Click any column to write
-          </span>
-          <span className="footer-right">{MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</span>
-        </footer>
       </div>
 
-      {journalOpen && (
-        <div className="journal-overlay" onClick={() => setJournalOpen(false)}>
-          <div className="journal-modal" onClick={e => e.stopPropagation()}>
-            <div className="journal-header">
-              <div>
-                <div className="journal-title">My journal</div>
-                <div className="journal-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</div>
-              </div>
-              <div className="journal-header-right">
-                <span className="journal-saved">{journalSaved ? 'saved ✓' : 'saving...'}</span>
-                <button className="journal-close" onClick={() => setJournalOpen(false)}>×</button>
-              </div>
-            </div>
-            <div className="journal-body">
-              {!journalLoaded ? (
-                <div className="journal-loading">Loading...</div>
-              ) : (
-                <JournalEditor
-                  key={journalId || 'new'}
-                  content={journalContent}
-                  onChange={handleJournalChange}
-                  editorKey={journalId || 'new'}
-                />
-              )}
-            </div>
+      <section className="features">
+        <div className="features-label">Why Friendey</div>
+        <div className="features-grid">
+          <div className="feature-card">
+            <div className="feature-icon">⬜</div>
+            <div className="feature-title">Your whole week at a glance</div>
+            <div className="feature-desc">See all 7 days side by side. No clicking around. No hidden views. Just your week, always visible.</div>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">✦</div>
+            <div className="feature-title">Write anything, anywhere</div>
+            <div className="feature-desc">Click any day and start writing. No templates, no setup, no friction. Just you and your thoughts.</div>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">📓</div>
+            <div className="feature-title">A journal that's always there</div>
+            <div className="feature-desc">One tap to open your personal journal. Your private space to think, reflect, and plan without limits.</div>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">◎</div>
+            <div className="feature-title">Everything saves automatically</div>
+            <div className="feature-desc">Every word you write is saved instantly. Come back tomorrow, next week, next year — it's all there.</div>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">⟡</div>
+            <div className="feature-title">Works on every device</div>
+            <div className="feature-desc">Desktop, tablet, phone. Friendey looks and works beautifully everywhere. No app download needed.</div>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">◈</div>
+            <div className="feature-title">Private and secure</div>
+            <div className="feature-desc">Your notes are yours alone. Row-level security means nobody — not even us — can read your writing.</div>
           </div>
         </div>
-      )}
+      </section>
+
+      <section className="quote-section">
+        <div className="quote-text">
+          "Stop managing five apps.<br /><em>Start managing your life.</em>"
+        </div>
+        <div className="quote-sub">One tab. One week. Everything you need.</div>
+      </section>
+
+      <section className="cta-section">
+        <div className="cta-headline">Your week starts here.</div>
+        <div className="cta-sub">Free to start. No credit card required.</div>
+        <button className="btn-primary" style={{ fontSize: 15, padding: '16px 40px' }} onClick={() => router.push('/login')}>
+          Start using Friendey →
+        </button>
+      </section>
+
+      <footer>
+        <div className="footer-logo">friendey.</div>
+        <div className="footer-right">© 2026 Friendey. Built for thinkers.</div>
+      </footer>
     </>
   )
 }
