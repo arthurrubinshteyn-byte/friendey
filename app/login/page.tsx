@@ -41,7 +41,7 @@ export default function Login() {
         padding: '40px', width: '100%', maxWidth: 400,
         boxShadow: '0 4px 24px rgba(0,0,0,0.06)'
       }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1C1C1A', marginBottom: 4, letterSpacing: '-0.5px' }}>friendey.</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1C1C1A', marginBottom: 4, letterSpacing: '-0.5px' }}>friendey</h1>
         <p style={{ fontSize: 13, color: '#A8A69C', marginBottom: 28 }}>your life, organized</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
