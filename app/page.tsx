@@ -98,7 +98,7 @@ export default function Landing() {
       <div className="glow" />
 
       <nav>
-        <div className="nav-logo">friendey.</div>
+        <div className="nav-logo">friendey</div>
         <div className="nav-right">
           <button className="nav-signin" onClick={() => router.push('/login')}>Sign in</button>
           <button className="nav-cta" onClick={() => router.push('/login')}>Get started free</button>
@@ -126,7 +126,7 @@ export default function Landing() {
         <div className="preview-frame">
           <div className="preview-bar">
             <div className="preview-bar-left">
-              <span className="preview-logo">friendey.</span>
+              <span className="preview-logo">friendey</span>
               <div className="preview-divider" />
               <span className="preview-week">March 16 — 22, 2026</span>
             </div>
@@ -226,7 +226,7 @@ export default function Landing() {
       </section>
 
       <footer>
-        <div className="footer-logo">friendey.</div>
+        <div className="footer-logo">friendey</div>
         <div className="footer-right">© 2026 Friendey. Built for thinkers.</div>
       </footer>
     </>
