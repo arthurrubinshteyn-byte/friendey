@@ -101,7 +101,7 @@ export default function Landing() {
 
       {/* Announcement bar */}
       <div className="announce-bar">
-        📱 Mobile app coming soon &nbsp;·&nbsp; <span>join the waitlist →</span>
+        📱 Mobile app coming soon &nbsp;·&nbsp; <span></span>
       </div>
 
       <nav>
