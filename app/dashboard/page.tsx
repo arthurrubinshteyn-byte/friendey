@@ -469,7 +469,6 @@ export default function Dashboard() {
           <span className="footer-text">
             <strong>Select text</strong> to format &nbsp;·&nbsp; Click any column to write
           </span>
-          <span className="footer-right">{MONTHS[new Date().getMonth()]} {new Date().getFullYear()}</span>
         </footer>
       </div>
 
