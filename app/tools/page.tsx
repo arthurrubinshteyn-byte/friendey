@@ -13,23 +13,9 @@ type Tool = {
 
 export default function Directory() {
   const [query, setQuery] = useState('')
-  const [tools, setTools] = useState<Tool[]>([])
   const [result, setResult] = useState<Tool | null>(null)
-  const [allTools, setAllTools] = useState<Tool[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('All')
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from('tools').select('*').order('name')
-      setAllTools(data ?? [])
-      setTools(data ?? [])
-    }
-    load()
-  }, [])
-
-  const categories = ['All', ...Array.from(new Set(allTools.map(t => t.category).filter(Boolean)))]
 
   const search = async () => {
     if (!query.trim()) return
@@ -58,12 +44,6 @@ export default function Directory() {
     setLoading(false)
   }
 
-  const filterByCategory = (cat: string) => {
-    setSelectedCategory(cat)
-    if (cat === 'All') setTools(allTools)
-    else setTools(allTools.filter(t => t.category === cat))
-  }
-
   return (
     <>
       <style>{`
@@ -75,42 +55,27 @@ export default function Directory() {
         .dir-page { min-height: 100vh; display: flex; flex-direction: column; }
 
         .dir-header { padding: 0 32px; height: 54px; background: #F8F7F4; border-bottom: 1px solid #E8E6E0; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-        .dir-header-left { display: flex; align-items: center; gap: 20px; }
+        .dir-header-left { display: flex; align-items: center; gap: 12px; }
         .dir-logo { font-size: 16px; font-weight: 700; color: #1C1C1A; letter-spacing: -0.5px; text-decoration: none; }
         .dir-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; background: #1C1C1A; color: #F8F7F4; padding: 3px 8px; border-radius: 4px; }
         .dir-back { font-size: 12px; color: #A8A69C; text-decoration: none; transition: color 0.15s; }
         .dir-back:hover { color: #1C1C1A; }
 
-        .dir-hero { padding: 60px 24px 40px; text-align: center; max-width: 640px; margin: 0 auto; }
-        .dir-title { font-size: 36px; font-weight: 700; color: #1C1C1A; letter-spacing: -1px; margin-bottom: 10px; }
+        .dir-hero { padding: 80px 24px 48px; text-align: center; max-width: 640px; margin: 0 auto; }
+        .dir-title { font-size: 40px; font-weight: 700; color: #1C1C1A; letter-spacing: -1.5px; margin-bottom: 12px; line-height: 1.1; }
         .dir-title span { color: #A8A69C; }
         .dir-sub { font-size: 15px; color: #A8A69C; line-height: 1.6; font-weight: 400; }
 
         .dir-search-wrap { padding: 0 24px 48px; max-width: 640px; margin: 0 auto; width: 100%; }
         .dir-search-box { display: flex; gap: 10px; }
-        .dir-search-input {
-          flex: 1; padding: 14px 18px; border-radius: 12px;
-          border: 1px solid #E8E6E0; font-size: 14px; outline: none;
-          font-family: 'Inter', sans-serif; background: #fff;
-          transition: border-color 0.15s; color: #1C1C1A;
-        }
+        .dir-search-input { flex: 1; padding: 14px 18px; border-radius: 12px; border: 1px solid #E8E6E0; font-size: 14px; outline: none; font-family: 'Inter', sans-serif; background: #fff; transition: border-color 0.15s; color: #1C1C1A; }
         .dir-search-input:focus { border-color: #1C1C1A; }
         .dir-search-input::placeholder { color: #C0BEB4; }
-        .dir-search-btn {
-          padding: 14px 24px; border-radius: 12px; background: #1C1C1A;
-          color: #F8F7F4; border: none; font-size: 13px; font-weight: 600;
-          cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
-          white-space: nowrap;
-        }
+        .dir-search-btn { padding: 14px 24px; border-radius: 12px; background: #1C1C1A; color: #F8F7F4; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; white-space: nowrap; }
         .dir-search-btn:hover { background: #333; }
 
         .dir-result { margin-top: 16px; }
-        .dir-result-card {
-          background: #fff; border: 1px solid #E8E6E0; border-radius: 14px;
-          padding: 20px 24px; display: flex; align-items: center; gap: 16px;
-          text-decoration: none; transition: all 0.15s; color: inherit;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
+        .dir-result-card { background: #fff; border: 1px solid #E8E6E0; border-radius: 14px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; text-decoration: none; transition: all 0.15s; color: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .dir-result-card:hover { border-color: #1C1C1A; box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
         .dir-result-icon { width: 44px; height: 44px; border-radius: 10px; background: #F2F1EE; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .dir-result-info { flex: 1; min-width: 0; }
@@ -123,47 +88,25 @@ export default function Directory() {
         .dir-no-result p { font-size: 14px; color: #A8A69C; }
         .dir-no-result strong { color: #1C1C1A; }
 
-        .dir-body { flex: 1; padding: 0 24px 80px; max-width: 960px; margin: 0 auto; width: 100%; }
-
-        .dir-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
-        .dir-cat-btn { font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 1px solid #E8E6E0; background: #fff; color: #6A6A5A; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
-        .dir-cat-btn:hover { border-color: #1C1C1A; color: #1C1C1A; }
-        .dir-cat-btn.active { background: #1C1C1A; color: #F8F7F4; border-color: #1C1C1A; }
-
-        .dir-section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #C0BEB4; margin-bottom: 16px; }
-
-        .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
-        .dir-tool-card {
-          background: #fff; border: 1px solid #E8E6E0; border-radius: 12px;
-          padding: 16px 18px; text-decoration: none; color: inherit;
-          transition: all 0.15s; display: flex; flex-direction: column; gap: 6px;
-        }
-        .dir-tool-card:hover { border-color: #1C1C1A; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-        .dir-tool-card-top { display: flex; align-items: center; justify-content: space-between; }
-        .dir-tool-name { font-size: 14px; font-weight: 600; color: #1C1C1A; }
-        .dir-tool-cat { font-size: 10px; color: #A8A69C; background: #F2F1EE; padding: 2px 7px; border-radius: 5px; }
-        .dir-tool-desc { font-size: 12.5px; color: #6A6A5A; line-height: 1.5; }
-        .dir-tool-url { font-size: 11px; color: #C0BEB4; margin-top: 2px; }
-
-        .dir-footer { padding: 24px 32px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; justify-content: space-between; }
+        .dir-footer { margin-top: auto; padding: 24px 32px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; justify-content: space-between; }
         .dir-footer-text { font-size: 11px; color: #C0BEB4; }
         .dir-footer-link { font-size: 11px; color: #A8A69C; text-decoration: none; }
         .dir-footer-link:hover { color: #1C1C1A; }
 
         @media (max-width: 640px) {
           .dir-header { padding: 0 16px; }
-          .dir-hero { padding: 40px 16px 28px; }
-          .dir-title { font-size: 28px; }
+          .dir-hero { padding: 48px 16px 32px; }
+          .dir-title { font-size: 30px; }
           .dir-search-wrap { padding: 0 16px 32px; }
-          .dir-body { padding: 0 16px 60px; }
-          .dir-grid { grid-template-columns: 1fr; }
+          .dir-search-box { flex-direction: column; }
+          .dir-search-btn { width: 100%; }
         }
       `}</style>
 
       <div className="dir-page">
         <header className="dir-header">
           <div className="dir-header-left">
-            <a href="/" className="dir-logo">friendey.</a>
+            <a href="/" className="dir-logo">friendey</a>
             <span className="dir-badge">Directory</span>
           </div>
           <a href="/dashboard" className="dir-back">← Back to app</a>
@@ -209,35 +152,6 @@ export default function Directory() {
               )}
             </div>
           )}
-        </div>
-
-        <div className="dir-body">
-          <div className="dir-cats">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                className={`dir-cat-btn${selectedCategory === cat ? ' active' : ''}`}
-                onClick={() => filterByCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="dir-section-label">All tools — {tools.length} listed</div>
-
-          <div className="dir-grid">
-            {tools.map(tool => (
-              <a key={tool.id} href={tool.url} target="_blank" rel="noopener noreferrer" className="dir-tool-card">
-                <div className="dir-tool-card-top">
-                  <span className="dir-tool-name">{tool.name}</span>
-                  <span className="dir-tool-cat">{tool.category}</span>
-                </div>
-                <div className="dir-tool-desc">{tool.description}</div>
-                <div className="dir-tool-url">{tool.url.replace('https://', '')}</div>
-              </a>
-            ))}
-          </div>
         </div>
 
         <footer className="dir-footer">
