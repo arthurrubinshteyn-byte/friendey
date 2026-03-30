@@ -387,11 +387,14 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="header-right">
-            <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
-              📓 <span>Open journal</span>
-            </button>
-            <button className="signout" onClick={signOut}>sign out →</button>
-          </div>
+  <a href="/tools" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: '#4A4840', background: '#EEECEA', border: '1px solid #E0DDD6', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', textDecoration: 'none', transition: 'all 0.15s' }}>
+    🔍 Directory
+  </a>
+  <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
+    📓 <span>Open journal</span>
+  </button>
+  <button className="signout" onClick={signOut}>sign out →</button>
+</div>
         </header>
 
         <div className="day-tabs">
