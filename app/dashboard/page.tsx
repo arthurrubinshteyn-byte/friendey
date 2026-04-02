@@ -23,6 +23,7 @@ function getWeekDays(offset = 0) {
   const day = today.getDay()
   const sunday = new Date(today)
   sunday.setDate(today.getDate() - day + offset * 7)
+  sunday.setHours(0, 0, 0, 0)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(sunday)
     d.setDate(sunday.getDate() + i)
@@ -30,7 +31,12 @@ function getWeekDays(offset = 0) {
   })
 }
 
-function fmt(date: Date) { return date.toISOString().split('T')[0] }
+function fmt(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -144,10 +150,11 @@ export default function Dashboard() {
   const [journalLoaded, setJournalLoaded] = useState(false)
   const debounceTimers = useRef<{ [key: string]: ReturnType<typeof setTimeout> }>({})
   const journalTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const weekOffsetRef = useRef(0)
   const todayIndex = new Date().getDay()
   const weekDays = getWeekDays(weekOffset)
 
-  const loadNotes = async (offset: number) => {
+  const loadNotes = useCallback(async (offset: number) => {
     const days = getWeekDays(offset)
     const weekStart = fmt(days[0])
     const { data } = await supabase
@@ -156,7 +163,11 @@ export default function Dashboard() {
       .eq('week_start', weekStart)
       .order('created_at', { ascending: true })
     setNotes(data ?? [])
-  }
+  }, [])
+
+  useEffect(() => {
+    weekOffsetRef.current = weekOffset
+  }, [weekOffset])
 
   useEffect(() => {
     const init = async () => {
@@ -186,14 +197,24 @@ export default function Dashboard() {
         })
         .subscribe()
 
-      return () => { supabase.removeChannel(channel) }
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          loadNotes(weekOffsetRef.current)
+        }
+      }
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      return () => {
+        supabase.removeChannel(channel)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
     }
     init()
-  }, [])
+  }, [loadNotes])
 
   useEffect(() => {
     if (!loading) loadNotes(weekOffset)
-  }, [weekOffset])
+  }, [weekOffset, loadNotes])
 
   const loadJournal = async () => {
     setJournalLoaded(false)
@@ -351,7 +372,6 @@ export default function Dashboard() {
         .footer { height: 34px; border-top: 1px solid #E8E6E0; display: flex; align-items: center; padding: 0 24px; flex-shrink: 0; justify-content: space-between; }
         .footer-text { font-size: 10.5px; color: #C8C6BC; }
         .footer-text strong { color: #A8A69C; font-weight: 500; }
-        .footer-right { font-size: 10.5px; color: #C8C6BC; }
         @media (max-width: 768px) {
           .header { padding: 0 16px; height: 50px; }
           .week-label { display: none; }
@@ -375,7 +395,7 @@ export default function Dashboard() {
       <div className="page">
         <header className="header">
           <div className="header-left">
-            <span className="logo-text">friendey</span>
+            <span className="logo-text">friendey.</span>
             <div className="header-divider" />
             <div className="week-nav">
               <button className="week-nav-btn" onClick={() => setWeekOffset(w => w - 1)}>←</button>
@@ -387,11 +407,11 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="header-right">
-  <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
-    📓 <span>Open journal</span>
-  </button>
-  <button className="signout" onClick={signOut}>sign out →</button>
-</div>
+            <button className="journal-btn" onClick={() => { setJournalOpen(true); loadJournal() }}>
+              📓 <span>Open journal</span>
+            </button>
+            <button className="signout" onClick={signOut}>sign out →</button>
+          </div>
         </header>
 
         <div className="day-tabs">
