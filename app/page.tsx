@@ -115,13 +115,12 @@ export default function Landing() {
       <section className="hero">
         <div className={`hero-eyebrow${visible ? ' visible' : ''}`}>
           <span className="eyebrow-dot" />
-          Your week. Your life. One place.
+          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
         </div>
         <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
           <span style={{ color: '#CDCDCD' }}></span><br /><em style={{ fontSize: '0.80em' }}>The Professional Life Dashboard.</em>
         </h1>
         <p className={`hero-sub${visible ? ' visible' : ''}`}>
-          Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
         </p>
         <div className={`hero-actions${visible ? ' visible' : ''}`}>
           <button className="btn-primary" onClick={() => router.push('/login')}>Start for free</button>
