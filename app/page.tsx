@@ -118,7 +118,7 @@ export default function Landing() {
           Your week. Your life. One place.
         </div>
         <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
-          <span style={{ color: '#CDCDCD' }}>Think clearly.</span><br /><em style={{ fontSize: '0.80em' }}>Live deliberately.</em>
+          <span style={{ color: '#CDCDCD' }}></span><br /><em style={{ fontSize: '0.80em' }}>The Professional Life Dashboard.</em>
         </h1>
         <p className={`hero-sub${visible ? ' visible' : ''}`}>
           Friendey is the weekly planner for people who are done juggling five apps to manage their life. One clean space to think, plan, and write.
