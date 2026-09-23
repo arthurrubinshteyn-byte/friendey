@@ -115,7 +115,7 @@ export default function Landing() {
       <section className="hero">
         <div className={`hero-eyebrow${visible ? ' visible' : ''}`}>
           <span className="eyebrow-dot" />
-          One clean space to think, plan, and write.
+        
         </div>
         <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
           <span style={{ color: '#CDCDCD' }}></span><br /><em style={{ fontSize: '0.80em' }}>Take Notes.</em>
