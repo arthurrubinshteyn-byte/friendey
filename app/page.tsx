@@ -227,7 +227,7 @@ export default function Landing() {
         <div className="cta-headline">Your week starts here.</div>
         <div className="cta-sub">Free to start. No credit card required.</div>
         <button className="btn-primary" style={{ fontSize: 15, padding: '16px 40px' }} onClick={() => router.push('/login')}>
-          Start using Friendey →
+          Start For Free →
         </button>
       </section>
 
