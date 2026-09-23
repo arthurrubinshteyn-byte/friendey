@@ -29,13 +29,9 @@ export default function Landing() {
         .nav-cta { font-size: 13px; font-weight: 500; color: #0C0C0B; background: #E8E6E0; border: none; padding: 9px 20px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
         .nav-cta:hover { background: #fff; transform: translateY(-1px); }
         .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 160px 24px 80px; text-align: center; }
-        .hero- { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #666; border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 100px; margin-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
-        .hero-.visible { opacity: 1; transform: translateY(0); }
         .hero-headline { font-family: 'DM Serif Display', serif; font-size: clamp(52px, 8vw, 96px); line-height: 1.0; letter-spacing: -2px; color: #F0EDE6; margin-bottom: 24px; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s; }
         .hero-headline.visible { opacity: 1; transform: translateY(0); }
         .hero-headline em { font-style: italic; color: #888; }
-        .hero-sub { font-size: clamp(15px, 2vw, 18px); color: #666; max-width: 480px; line-height: 1.7; font-weight: 300; margin-bottom: 48px; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s; }
-        .hero-sub.visible { opacity: 1; transform: translateY(0); }
         .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.45s, transform 0.8s ease 0.45s; }
         .hero-actions.visible { opacity: 1; transform: translateY(0); }
         .btn-primary { font-size: 14px; font-weight: 600; color: #0C0C0B; background: #F0EDE6; border: none; padding: 14px 32px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
@@ -110,12 +106,13 @@ export default function Landing() {
         </div>
       </nav>
 
-        </div>
+      <section className="hero">
         <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
-          <span style={{ color: '#CDCDCD' }}></span><br /><em style={{ fontSize: '0.80em' }}>Take Notes.</em>
+          <span style={{ color: '#CDCDCD' }}></span>
+          <br />
+          <em style={{ fontSize: '0.80em' }}>Take Notes.</em>
         </h1>
-        <p className={`hero-sub${visible ? ' visible' : ''}`}>
-        </p>
+
         <div className={`hero-actions${visible ? ' visible' : ''}`}>
           <button className="btn-primary" onClick={() => router.push('/login')}>Start for free</button>
           <button className="btn-secondary" onClick={() => router.push('/login')}>Sign in →</button>
