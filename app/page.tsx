@@ -29,9 +29,9 @@ export default function Landing() {
         .nav-cta { font-size: 13px; font-weight: 500; color: #0C0C0B; background: #E8E6E0; border: none; padding: 9px 20px; border-radius: 100px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
         .nav-cta:hover { background: #fff; transform: translateY(-1px); }
         .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 160px 24px 80px; text-align: center; }
-        .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #666; border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 100px; margin-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
-        .hero-eyebrow.visible { opacity: 1; transform: translateY(0); }
-        .eyebrow-dot { width: 5px; height: 5px; background: #4ADE80; border-radius: 50%; animation: pulse 2s infinite; }
+        .hero- { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #666; border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 100px; margin-bottom: 40px; opacity: 0; transform: translateY(16px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .hero-.visible { opacity: 1; transform: translateY(0); }
+        .-dot { width: 5px; height: 5px; background: #4ADE80; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .hero-headline { font-family: 'DM Serif Display', serif; font-size: clamp(52px, 8vw, 96px); line-height: 1.0; letter-spacing: -2px; color: #F0EDE6; margin-bottom: 24px; opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s; }
         .hero-headline.visible { opacity: 1; transform: translateY(0); }
@@ -112,10 +112,6 @@ export default function Landing() {
         </div>
       </nav>
 
-      <section className="hero">
-        <div className={`hero-eyebrow${visible ? ' visible' : ''}`}>
-          <span className="eyebrow-dot" />
-        
         </div>
         <h1 className={`hero-headline${visible ? ' visible' : ''}`}>
           <span style={{ color: '#CDCDCD' }}></span><br /><em style={{ fontSize: '0.80em' }}>Take Notes.</em>
