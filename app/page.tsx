@@ -93,11 +93,6 @@ export default function Landing() {
       <div className="grain" />
       <div className="glow" />
 
-      {/* Announcement bar */}
-      <div className="announce-bar">
-        📱 Mobile app coming soon &nbsp;&nbsp;
-      </div>
-
       <nav>
         <div className="nav-logo">friendey</div>
         <div className="nav-right">
