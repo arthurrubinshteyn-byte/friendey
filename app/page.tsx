@@ -84,7 +84,7 @@ export default function Landing() {
         .footer-right { font-size: 12px; color: #333; }
         @media (max-width: 768px) {
           nav { padding: 16px 20px; top: 34px; }
-          .hero { padding: 140px 20px 60px; }
+          .hero { padding: 100px 20px 60px; }
           .features-grid { grid-template-columns: 1fr; }
           footer { padding: 20px; flex-direction: column; gap: 8px; text-align: center; }
         }
